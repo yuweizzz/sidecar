@@ -14,6 +14,8 @@ import (
 	"io"
 	"path/filepath"
 	"time"
+	"fmt"
+	"github.com/BurntSushi/toml"
 )
 
 func CreateDirForCert() (string, error) {
@@ -117,8 +119,15 @@ func GenTLSCertificate(hostname string, crt *x509.Certificate, pri *rsa.PrivateK
 	return TLSCert, nil
 }
 
-func HandleHttp(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+func HandleHttp( server string, subpath string, key string, value string, w http.ResponseWriter, r *http.Request) {
+	var  body  io.Reader
+	NewURL := server + "/"+ subpath + "/" + r.Host + r.URL.String()
+	fmt.Println(NewURL)
+	Re,_ := http.NewRequest(r.Method , NewURL , body)
+	Re.Header.Add(key, value)
+	Resp,_ := http.DefaultTransport.RoundTrip(Re)
+	w.WriteHeader(Resp.StatusCode)
+	io.Copy(w, Resp.Body)
 }
 
 func HandleHttps(w http.ResponseWriter, r *http.Request) {
@@ -147,14 +156,39 @@ func transfer(destination io.WriteCloser, source io.ReadCloser) {
 	io.Copy(destination, source)
 }
 
+
+type config struct {
+	Server string
+	ComplexPath string
+	CustomHeaderName string
+	CustomHeaderValue string
+}
+
+func ReadConfig() * config {
+		filePath, err := filepath.Abs("./conf.toml")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("parse toml file once. filePath: %s\n", filePath)
+		if _ , err := toml.DecodeFile(filePath, &cfg); err != nil {
+			panic(err)
+		}
+	return cfg
+}
+
+var (
+	cfg *config
+)
+
 func main() {
+	ReadConfig()
 	path, _ := CreateDirForCert()
 	key,_ := GenAndSavePriKey(path)
 	crt,_ := CreateAndSaveRootCert(path, key)
 	server := &http.Server{
 		Addr: ":443",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			HandleHttp(w, r)
+			HandleHttp(cfg.Server, cfg.ComplexPath , cfg.CustomHeaderName , cfg.CustomHeaderValue, w, r)
 		}),
 		IdleTimeout:  5 * time.Second,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)), // disable http2
