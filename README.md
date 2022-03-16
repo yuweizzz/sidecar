@@ -1,11 +1,10 @@
-## Learn
+## Feature
 
 - [] HTTP proxy
-- [] HTTPS proxy
+- [x] HTTPS proxy
 - [] Work as a daemon
-- [] Support custom config
-- [] Support assistant log
-
-## How to build
-
-- [] Create and trust certificate 
+- [x] Support custom config
+- [x] Support assistant log
+- [x] Auto create certificate
+- [] Provide cmd tool
+- [] Refactoring
