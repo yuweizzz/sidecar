@@ -205,5 +205,6 @@ func main() {
 		}),
 	}
 	go proxy.ListenAndServe()
+	LogRecord("info", "Start Server ... ")
 	server.ListenAndServeTLS("", "")
 }
