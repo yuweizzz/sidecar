@@ -181,30 +181,33 @@ var (
 )
 
 func main() {
-	ReadConfig()
-	path, _ := CreateDirForCert()
-	key,_ := GenAndSavePriKey(path)
-	crt,_ := CreateAndSaveRootCert(path, key)
-	server := &http.Server{
-		Addr: ":443",
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			HandleHttp(cfg.Server, cfg.ComplexPath , cfg.CustomHeaderName , cfg.CustomHeaderValue, w, r)
-		}),
-		IdleTimeout:  5 * time.Second,
-		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)), // disable http2
-		TLSConfig: &tls.Config{
-			GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				return GenTLSCertificate(chi.ServerName, crt, key)
+
+	if os.Args[1] == "start" {
+		ReadConfig()
+		path, _ := CreateDirForCert()
+		key,_ := GenAndSavePriKey(path)
+		crt,_ := CreateAndSaveRootCert(path, key)
+		server := &http.Server{
+			Addr: ":443",
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				HandleHttp(cfg.Server, cfg.ComplexPath , cfg.CustomHeaderName , cfg.CustomHeaderValue, w, r)
+			}),
+			IdleTimeout:  5 * time.Second,
+			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)), // disable http2
+			TLSConfig: &tls.Config{
+				GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
+					return GenTLSCertificate(chi.ServerName, crt, key)
+				},
 			},
-		},
+		}
+		proxy := &http.Server{
+			Addr: ":4396",
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				HandleHttps(w, r)
+			}),
+		}
+		go proxy.ListenAndServe()
+		LogRecord("info", "Start Server ... ")
+		server.ListenAndServeTLS("", "")
 	}
-	proxy := &http.Server{
-		Addr: ":4396",
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			HandleHttps(w, r)
-		}),
-	}
-	go proxy.ListenAndServe()
-	LogRecord("info", "Start Server ... ")
-	server.ListenAndServeTLS("", "")
 }
