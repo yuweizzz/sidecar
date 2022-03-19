@@ -16,6 +16,8 @@ import (
 	"time"
 	"fmt"
 	"github.com/BurntSushi/toml"
+	"os/signal"
+	"syscall"
 )
 
 func CreateDirForCert() (string, error) {
@@ -206,8 +208,22 @@ func main() {
 				HandleHttps(w, r)
 			}),
 		}
+		sigs := make(chan os.Signal, 1)
+		done := make(chan bool, 1)
+
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
 		go proxy.ListenAndServe()
+		go func() {
+			sig := <-sigs
+			fmt.Println()
+			fmt.Println(sig)
+			done <- true
+		}()
 		LogRecord("info", "Start Server ... ")
-		server.ListenAndServeTLS("", "")
+		go server.ListenAndServeTLS("", "")
+		LogRecord("info", "awaiting signal")
+		<-done
+		LogRecord("info", "exiting")
 	}
 }
