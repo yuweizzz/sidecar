@@ -1,4 +1,4 @@
-package main
+package Coaster
 
 import (
 	"log"

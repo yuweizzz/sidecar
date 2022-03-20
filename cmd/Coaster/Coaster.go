@@ -1,4 +1,4 @@
-package Coaster
+package main
 
 import (
 	"crypto/rand"
@@ -18,6 +18,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"os/signal"
 	"syscall"
+	"log"
 )
 
 func CreateDirForCert() (string, error) {
@@ -159,6 +160,32 @@ func transfer(destination io.WriteCloser, source io.ReadCloser) {
 }
 
 
+
+
+func FetchFile() (*os.File, error) {
+	pwd, _ := os.Getwd()
+	fullpath := filepath.Join(pwd, "logs")
+	_, err := os.Stat(fullpath)
+	if os.IsNotExist(err) {
+		os.Mkdir(fullpath, 0744)
+	}
+	fileName := "logs/proxy.log"
+	fd, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	return fd, err
+}
+
+func LogRecord(level string, context string) {
+	fd, err := FetchFile()
+
+	if err != nil {
+		log.Fatalln("open file error !")
+	}
+	defer fd.Close()
+
+	Logger := log.New(fd, "["+level+"] ", log.LstdFlags)
+	Logger.Println(context)
+}
+
 type config struct {
 	Server string
 	ComplexPath string
@@ -182,7 +209,7 @@ var (
 	cfg *config
 )
 
-func Start() {
+func main() {
 
 	if os.Args[1] == "start" {
 		ReadConfig()
