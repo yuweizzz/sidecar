@@ -1,4 +1,4 @@
-package Coaster
+package sidecar
 
 import (
 	"crypto/rand"
@@ -10,7 +10,20 @@ import (
 	"math/big"
 	"os"
 	"time"
+	"io/ioutil"
 )
+
+func ReadPriKey(name string) (pri *rsa.PrivateKey) {
+	raw, err := ioutil.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+    block, _ := pem.Decode(raw)
+    if pri, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
+        panic(err)
+    }
+	return
+}
 
 func GenAndSavePriKey(fd *os.File) (pri *rsa.PrivateKey) {
 	defer fd.Close()
@@ -25,13 +38,25 @@ func GenAndSavePriKey(fd *os.File) (pri *rsa.PrivateKey) {
 	return
 }
 
+func ReadRootCert(name string) (crt *x509.Certificate) {
+	raw, err := ioutil.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+    block, _ := pem.Decode(raw)
+    if crt, err = x509.ParseCertificate(block.Bytes); err != nil {
+        panic(err)
+    }
+	return
+}
+
 func GenAndSaveRootCert(fd *os.File, pri *rsa.PrivateKey) (crt *x509.Certificate) {
 	defer fd.Close()
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano() / 100000),
 		Subject: pkix.Name{
-			CommonName: "Coaster Root Certificate",
-			Organization: []string{"Coaster"},
+			CommonName: "Go-sidecar Root Certificate",
+			Organization: []string{"Go-sidecar"},
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
@@ -65,12 +90,12 @@ func GenAndSaveRootCert(fd *os.File, pri *rsa.PrivateKey) (crt *x509.Certificate
 	return
 }
 
-func GenTLSCert(hostname string, crt *x509.Certificate, pri *rsa.PrivateKey) (tls_cert *tls.Certificate){
+func GenTLSCert(hostname string, crt *x509.Certificate, pri *rsa.PrivateKey) (tls_cert *tls.Certificate, err error){
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano() / 100000),
 		Subject: pkix.Name{
 			CommonName:   hostname,
-			Organization: []string{"Coaster"},
+			Organization: []string{"Go-sidecar"},
 		},
 		NotBefore:          time.Now().Add(-time.Hour * 48),
 		NotAfter:           time.Now().Add(time.Hour * 24 * 365),
