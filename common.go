@@ -1,16 +1,16 @@
-package Coaster
+package sidecar
 
 import (
 	"os"
 	"path/filepath"
 )
 
-func DetectConfigFile() (path string) {
-	_, err := os.Stat("conf.toml")
+func DetectFile(name string) (path string) {
+	_, err := os.Stat(name)
 	if os.IsNotExist(err) {
 		return ""
 	}
-	path, err = filepath.Abs("conf.toml")
+	path, err = filepath.Abs(name)
 	if err != nil {
 		panic(err)
 	}
