@@ -1,4 +1,4 @@
-package Coaster
+package sidecar
 
 import (
 	"io"

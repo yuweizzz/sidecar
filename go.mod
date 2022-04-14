@@ -1,4 +1,4 @@
-module github.com/yuweizzz/Coaster
+module github.com/yuweizzz/sidecar
 
 go 1.16
 
