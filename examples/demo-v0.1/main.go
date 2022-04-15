@@ -1,4 +1,4 @@
-package Coaster
+package main
 
 import (
 	"crypto/rand"
@@ -7,17 +7,17 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
+	"github.com/BurntSushi/toml"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
-	"io"
-	"path/filepath"
-	"time"
-	"fmt"
-	"github.com/BurntSushi/toml"
 	"os/signal"
+	"path/filepath"
 	"syscall"
+	"time"
 )
 
 func CreateDirForCert() (string, error) {
@@ -57,7 +57,7 @@ func CreateAndSaveRootCert(path string, pri *rsa.PrivateKey) (*x509.Certificate,
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano() / 100000),
 		Subject: pkix.Name{
-			CommonName: "Coaster Root Certificate",
+			CommonName:   "Coaster Root Certificate",
 			Organization: []string{"Coaster"},
 		},
 		NotBefore:             time.Now(),
@@ -97,7 +97,7 @@ func CreateAndSaveRootCert(path string, pri *rsa.PrivateKey) (*x509.Certificate,
 	return crt, nil
 }
 
-func GenTLSCertificate(hostname string, crt *x509.Certificate, pri *rsa.PrivateKey) (*tls.Certificate, error){
+func GenTLSCertificate(hostname string, crt *x509.Certificate, pri *rsa.PrivateKey) (*tls.Certificate, error) {
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano() / 100000),
 		Subject: pkix.Name{
@@ -121,13 +121,13 @@ func GenTLSCertificate(hostname string, crt *x509.Certificate, pri *rsa.PrivateK
 	return TLSCert, nil
 }
 
-func HandleHttp( server string, subpath string, key string, value string, w http.ResponseWriter, r *http.Request) {
-	var  body  io.Reader
-	NewURL := server + "/"+ subpath + "/" + r.Host + r.URL.String()
+func HandleHttp(server string, subpath string, key string, value string, w http.ResponseWriter, r *http.Request) {
+	var body io.Reader
+	NewURL := server + "/" + subpath + "/" + r.Host + r.URL.String()
 	fmt.Println(NewURL)
-	Re,_ := http.NewRequest(r.Method , NewURL , body)
+	Re, _ := http.NewRequest(r.Method, NewURL, body)
 	Re.Header.Add(key, value)
-	Resp,_ := http.DefaultTransport.RoundTrip(Re)
+	Resp, _ := http.DefaultTransport.RoundTrip(Re)
 	w.WriteHeader(Resp.StatusCode)
 	io.Copy(w, Resp.Body)
 }
@@ -158,23 +158,22 @@ func transfer(destination io.WriteCloser, source io.ReadCloser) {
 	io.Copy(destination, source)
 }
 
-
 type config struct {
-	Server string
-	ComplexPath string
-	CustomHeaderName string
+	Server            string
+	ComplexPath       string
+	CustomHeaderName  string
 	CustomHeaderValue string
 }
 
-func ReadConfig() * config {
-		filePath, err := filepath.Abs("./conf.toml")
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("parse toml file once. filePath: %s\n", filePath)
-		if _ , err := toml.DecodeFile(filePath, &cfg); err != nil {
-			panic(err)
-		}
+func ReadConfig() *config {
+	filePath, err := filepath.Abs("./conf.toml")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("parse toml file once. filePath: %s\n", filePath)
+	if _, err := toml.DecodeFile(filePath, &cfg); err != nil {
+		panic(err)
+	}
 	return cfg
 }
 
@@ -182,17 +181,17 @@ var (
 	cfg *config
 )
 
-func Start() {
+func main() {
 
 	if os.Args[1] == "start" {
 		ReadConfig()
 		path, _ := CreateDirForCert()
-		key,_ := GenAndSavePriKey(path)
-		crt,_ := CreateAndSaveRootCert(path, key)
+		key, _ := GenAndSavePriKey(path)
+		crt, _ := CreateAndSaveRootCert(path, key)
 		server := &http.Server{
 			Addr: ":443",
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				HandleHttp(cfg.Server, cfg.ComplexPath , cfg.CustomHeaderName , cfg.CustomHeaderValue, w, r)
+				HandleHttp(cfg.Server, cfg.ComplexPath, cfg.CustomHeaderName, cfg.CustomHeaderValue, w, r)
 			}),
 			IdleTimeout:  5 * time.Second,
 			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)), // disable http2
@@ -220,10 +219,9 @@ func Start() {
 			fmt.Println(sig)
 			done <- true
 		}()
-		LogRecord("info", "Start Server ... ")
 		go server.ListenAndServeTLS("", "")
-		LogRecord("info", "awaiting signal")
+		fmt.Println("info", "awaiting signal")
 		<-done
-		LogRecord("info", "exiting")
+		fmt.Println("info", "exiting")
 	}
 }
