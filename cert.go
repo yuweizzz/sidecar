@@ -7,10 +7,10 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"io/ioutil"
 	"math/big"
 	"os"
 	"time"
-	"io/ioutil"
 )
 
 func ReadPriKey(name string) (pri *rsa.PrivateKey) {
@@ -18,10 +18,10 @@ func ReadPriKey(name string) (pri *rsa.PrivateKey) {
 	if err != nil {
 		panic(err)
 	}
-    block, _ := pem.Decode(raw)
-    if pri, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
-        panic(err)
-    }
+	block, _ := pem.Decode(raw)
+	if pri, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
+		panic(err)
+	}
 	return
 }
 
@@ -43,10 +43,10 @@ func ReadRootCert(name string) (crt *x509.Certificate) {
 	if err != nil {
 		panic(err)
 	}
-    block, _ := pem.Decode(raw)
-    if crt, err = x509.ParseCertificate(block.Bytes); err != nil {
-        panic(err)
-    }
+	block, _ := pem.Decode(raw)
+	if crt, err = x509.ParseCertificate(block.Bytes); err != nil {
+		panic(err)
+	}
 	return
 }
 
@@ -55,7 +55,7 @@ func GenAndSaveRootCert(fd *os.File, pri *rsa.PrivateKey) (crt *x509.Certificate
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano() / 100000),
 		Subject: pkix.Name{
-			CommonName: "Go-sidecar Root Certificate",
+			CommonName:   "Go-sidecar Root Certificate",
 			Organization: []string{"Go-sidecar"},
 		},
 		NotBefore:             time.Now(),
@@ -90,7 +90,7 @@ func GenAndSaveRootCert(fd *os.File, pri *rsa.PrivateKey) (crt *x509.Certificate
 	return
 }
 
-func GenTLSCert(hostname string, crt *x509.Certificate, pri *rsa.PrivateKey) (tls_cert *tls.Certificate, err error){
+func GenTLSCert(hostname string, crt *x509.Certificate, pri *rsa.PrivateKey) (tls_cert *tls.Certificate, err error) {
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano() / 100000),
 		Subject: pkix.Name{
