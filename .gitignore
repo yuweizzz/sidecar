@@ -1,3 +1,4 @@
 certificate
 log
 conf.toml
+sidecar-server.lock
