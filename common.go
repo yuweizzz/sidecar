@@ -1,8 +1,11 @@
 package sidecar
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
+	"syscall"
 )
 
 func DetectFile(name string) (path string) {
@@ -43,4 +46,50 @@ func OpenExistFile(file string) (fd *os.File) {
 		panic(err)
 	}
 	return
+}
+
+func DetectProcess(pid int) (alive bool) {
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		panic(err)
+	} else {
+		err := process.Signal(syscall.Signal(0))
+		if err != nil {
+			return false
+		} else {
+			return true
+		}
+	}
+}
+
+func ReadLock() (pid int) {
+	lock := DetectFile("sidecar-server.lock")
+	if lock == "" {
+		return 0
+	} else {
+		bytes, err := ioutil.ReadFile("sidecar-server.lock")
+		if err != nil {
+			panic(err)
+		}
+		pid, err = strconv.Atoi(string(bytes))
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+}
+
+func WriteLock(pid int) {
+	pid_str := strconv.Itoa(pid)
+	err := ioutil.WriteFile("sidecar-server.lock", []byte(pid_str), 0444)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func RemoveLock() {
+	err := os.Remove("sidecar-server.lock")
+	if err != nil {
+		panic(err)
+	}
 }
