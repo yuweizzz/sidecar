@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
-	"strconv"
 	"syscall"
-	//"github.com/yuweizzz/Coaster"
+
+	"github.com/yuweizzz/sidecar"
 )
 
 func main() {
@@ -20,44 +19,27 @@ func main() {
 	switch action {
 	case "start":
 		cmd := &exec.Cmd{
-			Path: "Coaster",
-			Args: os.Args,
+			Path:   "sidecar-server",
+			Stdout: os.Stdout,
+			Stderr: os.Stdout,
 		}
 		err := cmd.Start()
 		if err != nil {
-			panicWapper(err)
-		} else {
-			pid := strconv.Itoa(cmd.Process.Pid)
-			err = ioutil.WriteFile("Coaster.lock", []byte(pid), 0644)
-			if err != nil {
-				panicWapper(err)
-			}
-			fmt.Println("Now Server is running, pid:", pid)
+			panic(err)
 		}
 	case "stop":
-		bytes, err := ioutil.ReadFile("Coaster.lock")
-		if err != nil {
-			panicWapper(err)
+		pid := sidecar.ReadLock()
+		// if lock exist
+		if pid != 0 {
+			syscall.Kill(pid, syscall.SIGINT)
+			fmt.Println("Now Server is stopped.")
+		} else {
+			fmt.Println("Now sidecar-server.lock is not exist, server is stopped")
 		}
-		pid, err := strconv.Atoi(string(bytes))
-		if err != nil {
-			panicWapper(err)
-		}
-		syscall.Kill(pid, syscall.SIGINT)
-		err = os.Remove("Coaster.lock")
-		if err != nil {
-			panicWapper(err)
-		}
-		fmt.Println("Now Server is stopped.")
 	case "reload":
 		fmt.Println("reload action")
 	default:
 		fmt.Println("unknow action")
 	}
 	os.Exit(0)
-}
-
-func panicWapper(err error) {
-	fmt.Println("Coaster-Cli Run Failed!")
-	panic(err)
 }
