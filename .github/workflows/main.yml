@@ -5,9 +5,15 @@ on:
       - master
 
 jobs:
-
   build:
+    name: Build and test sidecar
+    env:
+      SERVER: ${{secrets.server}}
+      COMPLEXPATH: ${{secrets.complexpath}}
+      CUSTOMHEADERNAME: ${{secrets.customheadername}}
+      CUSTOMHEADERVALUE: ${{secrets.customheadervalue}}
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v3
 
@@ -19,7 +25,30 @@ jobs:
     - name: Build
       run: make build
 
-    - name: Test
+    - name: Write conf.toml
       run: |
-        ls build
-        
+        cd build
+        echo Server = \"$SERVER\" >> conf.toml
+        echo ComplexPath = \"$COMPLEXPATH\" >> conf.toml
+        echo CustomHeaderName = \"$CUSTOMHEADERNAME\" >> conf.toml
+        echo CustomHeaderValue = \"$CUSTOMHEADERVALUE\" >> conf.toml
+        ls
+
+    - name: Run Server
+      run: |
+        cd build
+        sudo ./sidecar-ctl start
+
+    - name: Trust Cert
+      run: |
+        cd build
+        sudo cp ./certificate/sidecar.crt /usr/local/share/ca-certificates/sidecar.crt
+        sudo update-ca-certificates
+
+    - name: Check process info
+      run: |
+        sudo netstat -nutlp
+
+    - name: Send Test request
+      run: |
+        sudo curl -i -x 127.0.0.1:4396 https://www.google.com 
