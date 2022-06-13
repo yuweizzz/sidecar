@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -70,7 +71,6 @@ func main() {
 		sidecar.LogRecord(log_fd, "info", "Use exist certificate......")
 	}
 	server := &http.Server{
-		Addr: ":443",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sidecar.HandleHttp(cfg.Server, cfg.ComplexPath, cfg.CustomHeaderName, cfg.CustomHeaderValue, w, r)
 		}),
@@ -82,14 +82,15 @@ func main() {
 			},
 		},
 	}
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+	watcher := &sidecar.Listener{Chan: make(chan net.Conn)}
 	proxy := &http.Server{
 		Addr: ":4396",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			sidecar.HandleHttps(w, r)
+			sidecar.HandleHttps(watcher, w, r)
 		}),
 	}
-	sigs := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
 	pid = os.Getpid()
 	sidecar.WriteLock(pid)
 	fmt.Println("Now Server is running and pid is", pid)
@@ -100,7 +101,7 @@ func main() {
 		done <- true
 	}()
 	sidecar.LogRecord(log_fd, "info", "Awaiting signal......")
-	go server.ListenAndServeTLS("", "")
+	go server.ServeTLS(watcher, "", "")
 	<-done
 	sidecar.LogRecord(log_fd, "info", "Except signal, exiting......")
 	sidecar.RemoveLock()

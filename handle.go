@@ -4,7 +4,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"time"
 )
 
 func HandleHttp(server string, subpath string, key string, value string, writer http.ResponseWriter, in_req *http.Request) {
@@ -17,12 +16,8 @@ func HandleHttp(server string, subpath string, key string, value string, writer 
 	io.Copy(writer, resp.Body)
 }
 
-func HandleHttps(writer http.ResponseWriter, in_req *http.Request) {
-	conn_local_proxy, err := net.DialTimeout("tcp", "127.0.0.1:443", 10*time.Second)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusServiceUnavailable)
-		return
-	}
+func HandleHttps(watcher *Listener, writer http.ResponseWriter, in_req *http.Request) {
+	conn_local, conn := net.Pipe()
 	writer.WriteHeader(http.StatusOK)
 	hijacker, ok := writer.(http.Hijacker)
 	if !ok {
@@ -33,8 +28,11 @@ func HandleHttps(writer http.ResponseWriter, in_req *http.Request) {
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusServiceUnavailable)
 	}
-	go transfer(conn_remote_proxy, conn_local_proxy)
-	go transfer(conn_local_proxy, conn_remote_proxy)
+	go transfer(conn_remote_proxy, conn_local)
+	go transfer(conn_local, conn_remote_proxy)
+	go func(){
+		watcher.Chan <- conn
+	}()
 }
 
 func transfer(write io.WriteCloser, read io.ReadCloser) {
