@@ -51,4 +51,4 @@ jobs:
 
     - name: Send Test request
       run: |
-        sudo curl -i -x 127.0.0.1:4396 https://www.google.com
+        curl -i -x 127.0.0.1:4396 https://www.google.com
