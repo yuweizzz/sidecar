@@ -72,7 +72,11 @@ func main() {
 	}
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			sidecar.HandleHttp(cfg.Server, cfg.ComplexPath, cfg.CustomHeaderName, cfg.CustomHeaderValue, w, r)
+			if sidecar.IfWebSocketReq(r) {
+				sidecar.HandleWss(cfg.Server, cfg.ComplexPath, cfg.CustomHeaderName, cfg.CustomHeaderValue, w, r)
+			} else {
+				sidecar.HandleHttp(cfg.Server, cfg.ComplexPath, cfg.CustomHeaderName, cfg.CustomHeaderValue, w, r)
+			}
 		}),
 		IdleTimeout:  5 * time.Second,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
@@ -88,7 +92,11 @@ func main() {
 	proxy := &http.Server{
 		Addr: ":4396",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			sidecar.HandleHttps(watcher, w, r)
+			if sidecar.IfHttp(r.URL.Scheme) {
+				sidecar.ProxyHandleHttp(w, r)
+			} else {
+				sidecar.HandleHttps(watcher, w, r)
+			}
 		}),
 	}
 	pid = os.Getpid()
