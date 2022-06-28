@@ -28,11 +28,13 @@ jobs:
     - name: Write conf.toml
       run: |
         cd build
-        echo Server = \"$SERVER\" >> conf.toml
-        echo ComplexPath = \"$COMPLEXPATH\" >> conf.toml
-        echo CustomHeaderName = \"$CUSTOMHEADERNAME\" >> conf.toml
-        echo CustomHeaderValue = \"$CUSTOMHEADERVALUE\" >> conf.toml
-        ls
+        cat << EOF > conf.toml
+        ProxyPort = 4396
+        Server = "$SERVER"
+        ComplexPath = "$COMPLEXPATH"
+        [CustomHeaders]
+        $CUSTOMHEADERNAME = "$CUSTOMHEADERVALUE"
+        EOF
 
     - name: Run Server
       run: |
