@@ -5,10 +5,10 @@ import (
 )
 
 type Config struct {
-	Server            string
-	ComplexPath       string
-	CustomHeaderName  string
-	CustomHeaderValue string
+	ProxyPort	  int
+	Server        string
+	ComplexPath   string
+	CustomHeaders map[string]string
 }
 
 func ReadConfig(path string) (cfg *Config) {

@@ -28,7 +28,7 @@ func HandleHttp(server string, subpath string, key string, value string, writer 
 }
 
 func IfWebSocketReq(in_req *http.Request) bool {
-	if ( in_req.Header.Get("Upgrade") == "websocket" && in_req.Header.Get("Connection") == "Upgrade" ) {
+	if in_req.Header.Get("Upgrade") == "websocket" && in_req.Header.Get("Connection") == "Upgrade" {
 		return true
 	}
 	return false
@@ -53,7 +53,7 @@ func HandleHttps(watcher *Listener, writer http.ResponseWriter, in_req *http.Req
 	}
 	go transfer(conn_remote_proxy, conn_local)
 	go transfer(conn_local, conn_remote_proxy)
-	go func(){
+	go func() {
 		watcher.Chan <- conn
 	}()
 }

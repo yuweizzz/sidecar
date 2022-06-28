@@ -2,15 +2,9 @@ package main
 
 import (
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/yuweizzz/sidecar"
 )
@@ -70,47 +64,14 @@ func main() {
 		crt = sidecar.ReadRootCert("certificate/sidecar.crt")
 		sidecar.LogRecord(log_fd, "info", "Use exist certificate......")
 	}
-	server := &http.Server{
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if sidecar.IfWebSocketReq(r) {
-				sidecar.HandleWss(cfg.Server, cfg.ComplexPath, cfg.CustomHeaderName, cfg.CustomHeaderValue, w, r)
-			} else {
-				sidecar.HandleHttp(cfg.Server, cfg.ComplexPath, cfg.CustomHeaderName, cfg.CustomHeaderValue, w, r)
-			}
-		}),
-		IdleTimeout:  5 * time.Second,
-		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
-		TLSConfig: &tls.Config{
-			GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				return sidecar.GenTLSCert(chi.ServerName, crt, pri)
-			},
-		},
-	}
-	sigs := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-	watcher := &sidecar.Listener{Chan: make(chan net.Conn)}
-	proxy := &http.Server{
-		Addr: ":4396",
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if sidecar.IfHttp(r.URL.Scheme) {
-				sidecar.ProxyHandleHttp(w, r)
-			} else {
-				sidecar.HandleHttps(watcher, w, r)
-			}
-		}),
-	}
+	proxy := sidecar.NewProxyServer(cfg.ProxyPort, log_fd)
+	forwarder := sidecar.NewNextProxyServer(proxy.Listener, crt, pri, log_fd, cfg.Server, cfg.ComplexPath, cfg.CustomHeaders)
 	pid = os.Getpid()
 	sidecar.WriteLock(pid)
 	fmt.Println("Now Server is running and pid is", pid)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go proxy.ListenAndServe()
-	go func() {
-		<-sigs
-		done <- true
-	}()
-	sidecar.LogRecord(log_fd, "info", "Awaiting signal......")
-	go server.ServeTLS(watcher, "", "")
-	<-done
+	go proxy.Run()
+	go forwarder.Run()
+	forwarder.WatchSignal()
 	sidecar.LogRecord(log_fd, "info", "Except signal, exiting......")
 	sidecar.RemoveLock()
 	defer log_fd.Close()
