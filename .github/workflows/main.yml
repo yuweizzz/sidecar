@@ -39,12 +39,12 @@ jobs:
     - name: Run Server
       run: |
         cd build
-        sudo ./sidecar-ctl start
+        sudo ./sidecar-server start -daemon
 
     - name: Trust Cert
       run: |
         cd build
-        sudo cp ./certificate/sidecar.crt /usr/local/share/ca-certificates/sidecar.crt
+        sudo cp ./sidecar.crt /usr/local/share/ca-certificates/sidecar.crt
         sudo update-ca-certificates
 
     - name: Check process info
