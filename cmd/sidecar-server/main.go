@@ -1,78 +1,104 @@
 package main
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
+	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"strconv"
+	"syscall"
 
 	"github.com/yuweizzz/sidecar"
 )
 
-func main() {
-	pid := sidecar.ReadLock()
-	// if lock exist
-	if pid != 0 {
-		alive := sidecar.DetectProcess(pid)
-		// if process alive
-		if alive {
-			fmt.Println("Maybe Server is running and pid is", pid)
-			fmt.Println("If Server is not running, remove sidecar-server.lock and retry.")
-			panic("Run failed, sidecar-server.lock exist.")
-			// if process not alive
-		} else {
-			sidecar.RemoveLock()
-		}
-	}
-	var cfg *sidecar.Config
-	config_file_path := sidecar.DetectFile("conf.toml")
+func help() {
+	fmt.Println("Usage:")
+	fmt.Println("       sidecar-server start [-conf tomlfile] [-dir workdir] [-daemon]")
+	fmt.Println("       sidecar-server stop [-dir workdir]")
+}
+
+func readConfig(path string) *sidecar.Config {
+	config_file_path := sidecar.DetectFile(path)
 	if config_file_path == "" {
-		panic("Run failed, conf.toml not exist.")
+		panic("Run failed, conf file not exist.")
 	} else {
-		cfg = sidecar.ReadConfig(config_file_path)
+		return sidecar.ReadConfig(config_file_path)
 	}
-	log_path := sidecar.CreateDirIfNotExist("log")
-	if log_path == "" {
-		panic("Create dir for log failed.")
+}
+
+func main() {
+	pwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
 	}
-	cert_path := sidecar.CreateDirIfNotExist("certificate")
-	if cert_path == "" {
-		panic("Create dir for certificate failed.")
+	startCmd := flag.NewFlagSet("start", flag.ExitOnError)
+	confPath := startCmd.String("conf", pwd+"/conf.toml", "conf")
+	workDir := startCmd.String("dir", pwd, "dir")
+	runDaemon := startCmd.Bool("daemon", false, "daemon")
+	stopCmd := flag.NewFlagSet("stop", flag.ExitOnError)
+	stopWorkDir := stopCmd.String("dir", pwd, "dir")
+
+	if len(os.Args) < 2 {
+		if os.Getenv("SPECIAL_MARK") == "ENABLED" {
+			cfg := readConfig(os.Getenv("CONF_PATH"))
+			run(cfg, os.Getenv("WORKDIR"), true)
+		} else {
+			help()
+		}
+		os.Exit(0)
 	}
-	log_fd := sidecar.CreateFileIfNotExist("log/server.log")
-	if log_fd == nil {
-		log_fd = sidecar.OpenExistFile("log/server.log")
+
+	switch os.Args[1] {
+	case "start":
+		fmt.Println("subcommand 'start'")
+		startCmd.Parse(os.Args[2:])
+		cfg := readConfig(*confPath)
+		if *runDaemon {
+			cmd := &exec.Cmd{
+				Path:   "sidecar-server",
+				Env:    []string{"SPECIAL_MARK=ENABLED", "CONF_PATH=" + *confPath, "WORKDIR=" + *workDir},
+				Stdout: os.Stdout,
+				Stderr: os.Stdout,
+			}
+			err := cmd.Start()
+			if err != nil {
+				panic(err)
+			}
+			os.Exit(0)
+		} else {
+			run(cfg, *workDir, false)
+		}
+	case "stop":
+		stopCmd.Parse(os.Args[2:])
+		pid := sidecar.ReadLock(*stopWorkDir + "/sidecar-server.lock")
+		// if lock exist
+		if pid != 0 {
+			syscall.Kill(pid, syscall.SIGINT)
+			fmt.Println("Now Server is stopped.")
+		} else {
+			fmt.Println("Now sidecar-server.lock is not exist, server is stopped")
+		}
+	default:
+		help()
 	}
-	sidecar.LogRecord(log_fd, "info", "Start Server......")
-	sidecar.LogRecord(log_fd, "info", "log location: "+log_path)
-	sidecar.LogRecord(log_fd, "info", "certificate location: "+cert_path)
-	var pri *rsa.PrivateKey
-	var crt *x509.Certificate
-	if pri_file_path := sidecar.DetectFile("certificate/sidecar.pri"); pri_file_path == "" {
-		pri_fd := sidecar.CreateFileIfNotExist("certificate/sidecar.pri")
-		pri = sidecar.GenAndSavePriKey(pri_fd)
-		sidecar.LogRecord(log_fd, "info", "Generate new privatekey......")
-	} else {
-		pri = sidecar.ReadPriKey("certificate/sidecar.pri")
-		sidecar.LogRecord(log_fd, "info", "Use exist privatekey......")
+}
+
+//log_fd := os.Stdout
+//sidecar.LogRecord(log_fd, "info", "Except signal, exiting......")
+
+func run(cfg *sidecar.Config, workdir string, backgroud bool) {
+	daemon := &sidecar.Daemon{
+		WorkDir:      workdir,
+		CertPath:     workdir + "/sidecar.crt",
+		PriKeyPath:   workdir + "/sidecar.pri",
+		LockFilePath: workdir + "/sidecar-server.lock",
 	}
-	if crt_file_path := sidecar.DetectFile("certificate/sidecar.crt"); crt_file_path == "" {
-		crt_fd := sidecar.CreateFileIfNotExist("certificate/sidecar.crt")
-		crt = sidecar.GenAndSaveRootCert(crt_fd, pri)
-		sidecar.LogRecord(log_fd, "info", "Generate new certificate......")
-	} else {
-		crt = sidecar.ReadRootCert("certificate/sidecar.crt")
-		sidecar.LogRecord(log_fd, "info", "Use exist certificate......")
-	}
-	proxy := sidecar.NewProxyServer(cfg.ProxyPort, log_fd)
-	forwarder := sidecar.NewNextProxyServer(proxy.Listener, crt, pri, log_fd, cfg.Server, cfg.ComplexPath, cfg.CustomHeaders)
-	pid = os.Getpid()
-	sidecar.WriteLock(pid)
-	fmt.Println("Now Server is running and pid is", pid)
+	daemon.Perpare(backgroud)
+	proxy := sidecar.NewProxyServer(cfg.ProxyPort, daemon.Logger)
+	forwarder := sidecar.NewNextProxyServer(proxy.Listener, daemon.Cert, daemon.PriKey, daemon.Logger, cfg.Server, cfg.ComplexPath, cfg.CustomHeaders)
+	sidecar.LogRecord(daemon.Logger, "info", "Now Server is running and pid is "+strconv.Itoa(daemon.Pid))
 	go proxy.Run()
 	go forwarder.Run()
 	forwarder.WatchSignal()
-	sidecar.LogRecord(log_fd, "info", "Except signal, exiting......")
-	sidecar.RemoveLock()
-	defer log_fd.Close()
+	daemon.Clean()
 }
