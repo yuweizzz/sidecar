@@ -5,7 +5,7 @@ import (
 )
 
 type Config struct {
-	ProxyPort	  int
+	ProxyPort     int
 	Server        string
 	ComplexPath   string
 	CustomHeaders map[string]string

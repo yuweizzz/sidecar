@@ -79,3 +79,9 @@ func proxyHandleHttps(l *Listener, w http.ResponseWriter, r *http.Request) {
 func (p *Proxy) Run() {
 	p.server.ListenAndServe()
 }
+
+func transfer(write io.WriteCloser, read io.ReadCloser) {
+	defer write.Close()
+	defer read.Close()
+	io.Copy(write, read)
+}
