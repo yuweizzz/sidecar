@@ -69,6 +69,7 @@ func proxyHandleHttps(l *Listener, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 	}
+	l.SetDest(r.Host)
 	go transfer(next_proxy, proxy_output)
 	go transfer(proxy_output, next_proxy)
 	go func() {

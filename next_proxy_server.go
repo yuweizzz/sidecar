@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"strings"
 )
 
 type NextProxy struct {
@@ -30,7 +31,7 @@ func NewNextProxyServer(
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if ifWebSocketReq(r) {
-				nextProxyHandleWs(destination, complex_path, headers, w, r)
+				nextProxyHandleHttp(destination, complex_path, headers, w, r)
 			} else {
 				nextProxyHandleHttp(destination, complex_path, headers, w, r)
 			}
@@ -39,6 +40,9 @@ func NewNextProxyServer(
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 		TLSConfig: &tls.Config{
 			GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				if chi.ServerName == "" {
+					return GenTLSCert(strings.Split(l.Dest(), ":")[0], ca, pri)
+				}
 				return GenTLSCert(chi.ServerName, ca, pri)
 			},
 		},
