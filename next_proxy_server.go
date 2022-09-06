@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
-	"strings"
 )
 
 type NextProxy struct {
