@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Proxy struct {
@@ -15,7 +16,7 @@ type Proxy struct {
 	logger   *os.File
 }
 
-func NewProxyServer(port int, fd *os.File) *Proxy {
+func NewProxyServer(port int, fd *os.File, pac *Pac) *Proxy {
 	port_info := ":" + strconv.Itoa(port)
 	listener := &Listener{Chan: make(chan net.Conn)}
 	server := &http.Server{
@@ -23,8 +24,12 @@ func NewProxyServer(port int, fd *os.File) *Proxy {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if ifHttpRequest(r.URL.Scheme) {
 				proxyHandleHttp(w, r)
-			} else {
+				return
+			}
+			if pac.Compare(r) {
 				proxyHandleHttps(listener, w, r)
+			} else {
+				directHandleHttps(w, r)
 			}
 		}),
 	}
@@ -55,6 +60,29 @@ func proxyHandleHttp(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(response.StatusCode)
 	io.Copy(w, response.Body)
+}
+
+func directHandleHttps(w http.ResponseWriter, r *http.Request) {
+	// connect Method is empty scheme, add "https" here
+	r.URL.Scheme = "https"
+	// dail timeout maybe get: Unsolicited response received on idle HTTP channel
+	dest_conn, err := net.DialTimeout("tcp", r.Host, 20*time.Second)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		http.Error(w, "Hijacking not supported", http.StatusInternalServerError)
+		return
+	}
+	client_conn, _, err := hijacker.Hijack()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+	}
+	go transfer(client_conn, dest_conn)
+	go transfer(dest_conn, client_conn)
 }
 
 func proxyHandleHttps(l *Listener, w http.ResponseWriter, r *http.Request) {

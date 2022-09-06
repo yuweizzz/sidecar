@@ -8,6 +8,7 @@ type Config struct {
 	ProxyPort     int
 	Server        string
 	ComplexPath   string
+	GfwListUrl    string
 	CustomHeaders map[string]string
 }
 

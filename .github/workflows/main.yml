@@ -32,6 +32,7 @@ jobs:
         ProxyPort = 4396
         Server = "$SERVER"
         ComplexPath = "$COMPLEXPATH"
+        GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
         [CustomHeaders]
         $CUSTOMHEADERNAME = "$CUSTOMHEADERVALUE"
         EOF

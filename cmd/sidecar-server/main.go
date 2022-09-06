@@ -94,7 +94,8 @@ func run(cfg *sidecar.Config, workdir string, backgroud bool) {
 		LockFilePath: workdir + "/sidecar-server.lock",
 	}
 	daemon.Perpare(backgroud)
-	proxy := sidecar.NewProxyServer(cfg.ProxyPort, daemon.Logger)
+	pac := sidecar.NewPac(cfg)
+	proxy := sidecar.NewProxyServer(cfg.ProxyPort, daemon.Logger, pac)
 	forwarder := sidecar.NewNextProxyServer(proxy.Listener, daemon.Cert, daemon.PriKey, daemon.Logger, cfg.Server, cfg.ComplexPath, cfg.CustomHeaders)
 	sidecar.LogRecord(daemon.Logger, "info", "Now Server is running and pid is "+strconv.Itoa(daemon.Pid))
 	go proxy.Run()
