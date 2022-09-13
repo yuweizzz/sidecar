@@ -26,10 +26,14 @@ func NewProxyServer(port int, fd *os.File, pac *Pac) *Proxy {
 				proxyHandleHttp(w, r)
 				return
 			}
-			if pac.Compare(r) {
+			if pac.Matcher == nil {
 				proxyHandleHttps(listener, w, r)
 			} else {
-				directHandleHttps(w, r)
+				if pac.Compare(r) {
+					proxyHandleHttps(listener, w, r)
+				} else {
+					directHandleHttps(w, r)
+				}
 			}
 		}),
 	}

@@ -16,7 +16,9 @@ func NewPac(cfg *Config) *Pac {
 	p := &Pac{
 		Matcher: nil,
 	}
-	p.getGfwList(cfg.Server, cfg.ComplexPath, cfg.CustomHeaders, cfg.GfwListUrl)
+	if cfg.GfwListUrl != "" {
+		p.getGfwList(cfg.Server, cfg.ComplexPath, cfg.CustomHeaders, cfg.GfwListUrl)
+	}
 	return p
 }
 
