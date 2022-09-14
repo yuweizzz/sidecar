@@ -89,35 +89,35 @@ func nextProxyHandleHttp(server string, subpath string, headers map[string]strin
 }
 
 func nextProxyHandleWs(server string, subpath string, headers map[string]string, writer http.ResponseWriter, in_req *http.Request) {
-    tls_conn, err := tls.Dial("tcp", server + ":443", nil)
-    if err != nil {
-      	writer.WriteHeader(http.StatusMethodNotAllowed)
-        return
-    }
-    dest_url := in_req.URL
-    dest_url.Scheme = "http"
-    dest_url.Host = server
+	tls_conn, err := tls.Dial("tcp", server+":443", nil)
+	if err != nil {
+		writer.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	dest_url := in_req.URL
+	dest_url.Scheme = "http"
+	dest_url.Host = server
 	in_path := dest_url.Path
 	dest_url.Path = "/" + subpath + "/" + in_req.Host + in_path
-    for k, v := range headers {
-        in_req.Header.Add(k, v)
-    }
-    in_req.Host = server
+	for k, v := range headers {
+		in_req.Header.Add(k, v)
+	}
+	in_req.Host = server
 	in_req.URL = dest_url
 	in_req.RequestURI = dest_url.RequestURI()
-    dump, err := httputil.DumpRequest(in_req, true)
-    hijacker, ok := writer.(http.Hijacker)
-    if !ok {
-        http.Error(writer, "Hijacking not supported", http.StatusInternalServerError)
-        return
-    }
-    proxy, _, err := hijacker.Hijack()
-    if err != nil {
-        http.Error(writer, err.Error(), http.StatusServiceUnavailable)
-    }
-    tls_conn.Write(dump)
-    go transfer(proxy, tls_conn)
-    go transfer(tls_conn, proxy)
+	dump, err := httputil.DumpRequest(in_req, true)
+	hijacker, ok := writer.(http.Hijacker)
+	if !ok {
+		http.Error(writer, "Hijacking not supported", http.StatusInternalServerError)
+		return
+	}
+	proxy, _, err := hijacker.Hijack()
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusServiceUnavailable)
+	}
+	tls_conn.Write(dump)
+	go transfer(proxy, tls_conn)
+	go transfer(tls_conn, proxy)
 }
 
 func (p *NextProxy) Run() {
