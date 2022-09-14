@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 	"math/big"
+	"net"
 	"os"
 	"time"
 )
@@ -102,7 +103,12 @@ func GenTLSCert(hostname string, crt *x509.Certificate, pri *rsa.PrivateKey) (tl
 		SignatureAlgorithm: x509.SHA256WithRSA,
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 	}
-	template.DNSNames = []string{hostname}
+	ip := net.ParseIP(hostname)
+	if ip == nil {
+		template.DNSNames = []string{hostname}
+	} else {
+		template.IPAddresses = []net.IP{ip}
+	}
 	bytes, err := x509.CreateCertificate(rand.Reader, template, crt, &pri.PublicKey, pri)
 	if err != nil {
 		panic(err)
