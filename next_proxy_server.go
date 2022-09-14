@@ -104,6 +104,7 @@ func nextProxyHandleWs(server string, subpath string, headers map[string]string,
     }
     in_req.Host = server
 	in_req.URL = dest_url
+	in_req.RequestURI = dest_url.RequestURI()
     dump, err := httputil.DumpRequest(in_req, true)
     hijacker, ok := writer.(http.Hijacker)
     if !ok {
