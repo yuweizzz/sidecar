@@ -37,6 +37,7 @@ func NewProxyServer(port int, fd *os.File, pac *Pac) *Proxy {
 			}
 		}),
 	}
+	server.Handler = http.AllowQuerySemicolons(server.Handler)
 	return &Proxy{
 		Listener: listener,
 		server:   server,
