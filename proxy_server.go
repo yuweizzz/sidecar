@@ -76,7 +76,6 @@ func directHandleHttps(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		http.Error(w, "Hijacking not supported", http.StatusInternalServerError)
@@ -86,13 +85,17 @@ func directHandleHttps(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 	}
+	_, err = io.WriteString(client_conn, "HTTP/1.1 200 Connection Established\r\n\r\n")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
 	go transfer(client_conn, dest_conn)
 	go transfer(dest_conn, client_conn)
 }
 
 func proxyHandleHttps(l *Listener, w http.ResponseWriter, r *http.Request) {
 	proxy_income, proxy_output := net.Pipe()
-	w.WriteHeader(http.StatusOK)
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		http.Error(w, "Hijacking not supported", http.StatusInternalServerError)
@@ -101,6 +104,11 @@ func proxyHandleHttps(l *Listener, w http.ResponseWriter, r *http.Request) {
 	next_proxy, _, err := hijacker.Hijack()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+	}
+	_, err = io.WriteString(next_proxy, "HTTP/1.1 200 Connection Established\r\n\r\n")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
 	}
 	l.SetDest(r.Host)
 	go transfer(next_proxy, proxy_output)
