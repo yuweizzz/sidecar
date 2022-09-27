@@ -3,10 +3,11 @@ on:
   push:
     branches:
       - master
-#on:
-#  push:
-#    tags:
-#      - 'v*-*'
+
+# on:
+#   push:
+#     tags:
+#       - 'v*-*'
 
 jobs:
   build:
@@ -14,38 +15,50 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.19
+      - name: Build MacOS app
+        if: matrix.os == 'macos-latest'
+        run: |
+          GOARCH="amd64" GOOS="darwin" make build
 
-    - name: Build linux app
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        make build
+      - name: Upload MacOS artifact
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sidecar-release-${{ runner.os }}-amd64
+          path: build/*
 
-    - name: Build windows app
-      if: matrix.os == 'windows-latest'
-      run: |
-        go build main.go
-        dir
+      - name: Build linux app
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          GOARCH="amd64" GOOS="linux" make build
 
-    - run: |
-      mkdir -p path/to/artifact
-    
-    - run: |
-      echo hello > path/to/artifact/world.txt
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: my-artifact
-        path: path/to/artifact/world.txt
+      - name: Upload linux artifact
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sidecar-release-${{ runner.os }}-amd64
+          path: build/*
 
-    - run: |
-      ls path/to/artifact
+      - name: Build Windows app
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          make clean
+          GOARCH="amd64" GOOS="windows" make build
+          mv build/sidecar-server build/sidecar-server.exe
+
+      - name: Upload Windows artifact
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sidecar-release-Windows-amd64
+          path: build/*

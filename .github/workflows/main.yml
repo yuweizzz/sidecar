@@ -15,43 +15,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.19
-
-    - name: Build
-      run: make build
-
-    - name: Write conf.toml
-      run: |
-        cd build
-        cat << EOF > conf.toml
-        ProxyPort = 4396
-        Server = "$SERVER"
-        ComplexPath = "$COMPLEXPATH"
-        GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
-        [CustomHeaders]
-        $CUSTOMHEADERNAME = "$CUSTOMHEADERVALUE"
-        EOF
-
-    - name: Run Server
-      run: |
-        cd build
-        sudo ./sidecar-server start -daemon
-
-    - name: Trust Cert
-      run: |
-        cd build
-        sudo cp ./sidecar.crt /usr/local/share/ca-certificates/sidecar.crt
-        sudo update-ca-certificates
-
-    - name: Check process info
-      run: |
-        sudo netstat -nutlp
-
-    - name: Send Test request
-      run: |
-        curl -i -x 127.0.0.1:4396 https://www.google.com
+      - uses: actions/checkout@v3
+  
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+  
+      - name: Build
+        run: make build
+  
+      - name: Write conf.toml
+        run: |
+          cd build
+          cat << EOF > conf.toml
+          ProxyPort = 4396
+          Server = "$SERVER"
+          ComplexPath = "$COMPLEXPATH"
+          GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
+          [CustomHeaders]
+          $CUSTOMHEADERNAME = "$CUSTOMHEADERVALUE"
+          EOF
+  
+      - name: Run Server
+        run: |
+          cd build
+          sudo ./sidecar-server start -daemon
+  
+      - name: Trust Cert
+        run: |
+          cd build
+          sudo cp ./sidecar.crt /usr/local/share/ca-certificates/sidecar.crt
+          sudo update-ca-certificates
+  
+      - name: Check process info
+        run: |
+          sudo netstat -nutlp
+  
+      - name: Send Test request
+        run: |
+          curl -i -x 127.0.0.1:4396 https://www.google.com
