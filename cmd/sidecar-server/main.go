@@ -14,6 +14,7 @@ import (
 func help() {
 	fmt.Println("Usage:")
 	fmt.Println("       sidecar-server start [-conf tomlfile] [-dir workdir] [-daemon]")
+	fmt.Println("       sidecar-server create-nginx-conf [-conf tomlfile] [-dir outputdir]")
 	fmt.Println("       sidecar-server stop [-dir workdir]")
 }
 
@@ -32,11 +33,14 @@ func main() {
 		panic(err)
 	}
 	startCmd := flag.NewFlagSet("start", flag.ExitOnError)
-	confPath := startCmd.String("conf", pwd+"/conf.toml", "conf")
-	workDir := startCmd.String("dir", pwd, "dir")
+	tomlPathForStart := startCmd.String("conf", pwd+"/conf.toml", "conf")
+	workDirForStart := startCmd.String("dir", pwd, "dir")
 	runDaemon := startCmd.Bool("daemon", false, "daemon")
 	stopCmd := flag.NewFlagSet("stop", flag.ExitOnError)
-	stopWorkDir := stopCmd.String("dir", pwd, "dir")
+	workDirForStop := stopCmd.String("dir", pwd, "dir")
+	createNginxConfCmd := flag.NewFlagSet("create-nginx-conf", flag.ExitOnError)
+	tomlPathForCreate := createNginxConfCmd.String("conf", pwd+"/conf.toml", "conf")
+	workDirForCreate := createNginxConfCmd.String("dir", pwd, "dir")
 
 	if len(os.Args) < 2 {
 		if os.Getenv("SPECIAL_MARK") == "ENABLED" {
@@ -50,13 +54,12 @@ func main() {
 
 	switch os.Args[1] {
 	case "start":
-		fmt.Println("subcommand 'start'")
 		startCmd.Parse(os.Args[2:])
-		cfg := readConfig(*confPath)
+		cfg := readConfig(*tomlPathForStart)
 		if *runDaemon {
 			cmd := &exec.Cmd{
 				Path:   "sidecar-server",
-				Env:    []string{"SPECIAL_MARK=ENABLED", "CONF_PATH=" + *confPath, "WORKDIR=" + *workDir},
+				Env:    []string{"SPECIAL_MARK=ENABLED", "CONF_PATH=" + *tomlPathForStart, "WORKDIR=" + *workDirForStart},
 				Stdout: os.Stdout,
 				Stderr: os.Stdout,
 			}
@@ -66,11 +69,11 @@ func main() {
 			}
 			os.Exit(0)
 		} else {
-			run(cfg, *workDir, false)
+			run(cfg, *workDirForStart, false)
 		}
 	case "stop":
 		stopCmd.Parse(os.Args[2:])
-		pid := sidecar.ReadLock(*stopWorkDir + "/sidecar-server.lock")
+		pid := sidecar.ReadLock(*workDirForStop + "/sidecar-server.lock")
 		// if lock exist
 		if pid != 0 {
 			syscall.Kill(pid, syscall.SIGINT)
@@ -78,6 +81,10 @@ func main() {
 		} else {
 			fmt.Println("Now sidecar-server.lock is not exist, server is stopped")
 		}
+	case "create-nginx-conf":
+		createNginxConfCmd.Parse(os.Args[2:])
+		cfg := readConfig(*tomlPathForCreate)
+		sidecar.RenderTemplateByConfig(*workDirForCreate, cfg)
 	default:
 		help()
 	}

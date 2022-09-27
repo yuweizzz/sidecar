@@ -5,11 +5,17 @@ import (
 )
 
 type Config struct {
-	ProxyPort     int
-	Server        string
-	ComplexPath   string
-	GfwListUrl    string
-	CustomHeaders map[string]string
+	ProxyPort            int
+	Server               string
+	ComplexPath          string
+	GfwListUrl           string
+	EnableListenHTTP2    bool
+	EnableWebSocketProxy bool
+	EnableModernTLSOnly  bool
+	SSLCertificatePath   string
+	SSLPrivateKeyPath    string
+	NginxWorkDir         string
+	CustomHeaders        map[string]string
 }
 
 func ReadConfig(path string) (cfg *Config) {
