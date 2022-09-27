@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"syscall"
 
 	"github.com/yuweizzz/sidecar"
 )
@@ -76,7 +75,8 @@ func main() {
 		pid := sidecar.ReadLock(*workDirForStop + "/sidecar-server.lock")
 		// if lock exist
 		if pid != 0 {
-			syscall.Kill(pid, syscall.SIGINT)
+			proc, _ := os.FindProcess(pid)
+			proc.Kill()
 			fmt.Println("Now Server is stopped.")
 		} else {
 			fmt.Println("Now sidecar-server.lock is not exist, server is stopped")
