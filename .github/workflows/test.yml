@@ -1,12 +1,12 @@
-name: Build and test sidecar
+name: Run sidecar test
 on:
   push:
     branches:
       - master
 
 jobs:
-  build:
-    name: Build and test sidecar
+  test:
+    name: Run sidecar test
     env:
       SERVER: ${{secrets.server}}
       COMPLEXPATH: ${{secrets.complexpath}}
@@ -22,12 +22,12 @@ jobs:
         with:
           go-version: 1.19
   
-      - name: Build
-        run: make build
+      - name: Download module
+        run: go mod download
   
       - name: Write conf.toml
         run: |
-          cd build
+          cd cmd/sidecar-server
           cat << EOF > conf.toml
           ProxyPort = 4396
           Server = "$SERVER"
@@ -39,19 +39,22 @@ jobs:
   
       - name: Run Server
         run: |
-          cd build
-          sudo ./sidecar-server start -daemon
+          cd cmd/sidecar-server
+          go build -o sidecar-server main.go
+          ./sidecar-server start -daemon
   
       - name: Trust Cert
         run: |
-          cd build
-          sudo cp ./sidecar.crt /usr/local/share/ca-certificates/sidecar.crt
+          sudo cp cmd/sidecar-server/sidecar.crt /usr/local/share/ca-certificates/sidecar.crt
           sudo update-ca-certificates
   
       - name: Check process info
         run: |
+          # sleep 30s wait for server up
+          sleep 30
+          cat cmd/sidecar-server/server.log
           sudo netstat -nutlp
   
       - name: Send Test request
         run: |
-          curl -i -x 127.0.0.1:4396 https://www.google.com
+          curl -v -I -x 127.0.0.1:4396 https://www.google.com

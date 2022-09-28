@@ -1,17 +1,13 @@
 name: Build and release sidecar
+
 on:
   push:
-    branches:
-      - master
-
-# on:
-#   push:
-#     tags:
-#       - 'v*-*'
+    tags:
+      - 'v*-*'
 
 jobs:
   build:
-    name: Build and release sidecar
+    name: Build sidecar
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -62,3 +58,26 @@ jobs:
         with:
           name: sidecar-release-Windows-amd64
           path: build/*
+
+  release:
+    name: Release sidecar
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+
+      - name: Tar artifacts
+        run: |
+          for dir in $(ls)
+          do
+              tar -czpf $dir.tar.gz $dir
+          done
+          ls -al
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: "*.tar.gz"
