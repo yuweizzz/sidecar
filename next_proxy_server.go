@@ -133,6 +133,6 @@ func (p *NextProxy) WatchSignal() {
 		<-sigs
 		done <- true
 	}()
-	LogRecord(p.logger, "info", "Awaiting signal......")
+	Info("Awaiting signal......")
 	<-done
 }

@@ -90,9 +90,6 @@ func main() {
 	}
 }
 
-//log_fd := os.Stdout
-//sidecar.LogRecord(log_fd, "info", "Except signal, exiting......")
-
 func run(cfg *sidecar.Config, workdir string, backgroud bool) {
 	daemon := &sidecar.Daemon{
 		WorkDir:      workdir,
@@ -104,7 +101,7 @@ func run(cfg *sidecar.Config, workdir string, backgroud bool) {
 	pac := sidecar.NewPac(cfg)
 	proxy := sidecar.NewProxyServer(cfg.ProxyPort, daemon.Logger, pac)
 	forwarder := sidecar.NewNextProxyServer(proxy.Listener, daemon.Cert, daemon.PriKey, daemon.Logger, cfg.Server, cfg.ComplexPath, cfg.CustomHeaders)
-	sidecar.LogRecord(daemon.Logger, "info", "Now Server is running and pid is "+strconv.Itoa(daemon.Pid))
+	sidecar.Info("Now Server is running and pid is "+strconv.Itoa(daemon.Pid))
 	go proxy.Run()
 	go forwarder.Run()
 	forwarder.WatchSignal()

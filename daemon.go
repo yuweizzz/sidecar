@@ -24,12 +24,13 @@ func (d *Daemon) Perpare(backgroud bool) {
 	if backgroud {
 		log_fd := CreateFileIfNotExist(d.WorkDir + "/server.log")
 		if log_fd == nil {
-			log_fd = OpenExistFile(d.WorkDir + "server.log")
+			log_fd = OpenExistFile(d.WorkDir + "/server.log")
 		}
 		d.Logger = log_fd
 	} else {
 		d.Logger = os.Stdout
 	}
+	Initial("info", d.Logger)
 	pid := ReadLock(d.LockFilePath)
 	// if lock exist
 	if pid != 0 {
@@ -48,18 +49,18 @@ func (d *Daemon) Perpare(backgroud bool) {
 	if pri_file_path := DetectFile(d.PriKeyPath); pri_file_path == "" {
 		pri_fd := CreateFileIfNotExist(d.PriKeyPath)
 		d.PriKey = GenAndSavePriKey(pri_fd)
-		LogRecord(d.Logger, "info", "Generate new privatekey......")
+		Info("Generate new privatekey, privatekey save to ", d.PriKeyPath)
 	} else {
 		d.PriKey = ReadPriKey(d.PriKeyPath)
-		LogRecord(d.Logger, "info", "Use exist privatekey......")
+		Info("Use exist privatekey, file path is ", pri_file_path)
 	}
 	if crt_file_path := DetectFile(d.CertPath); crt_file_path == "" {
 		crt_fd := CreateFileIfNotExist(d.CertPath)
 		d.Cert = GenAndSaveRootCert(crt_fd, d.PriKey)
-		LogRecord(d.Logger, "info", "Generate new certificate......")
+		Info("Generate new certificate, certificate save to ", d.CertPath)
 	} else {
 		d.Cert = ReadRootCert(d.CertPath)
-		LogRecord(d.Logger, "info", "Use exist certificate......")
+		Info("Use exist certificate, file path is ", crt_file_path)
 	}
 	writeLock(d.Pid, d.LockFilePath)
 }
@@ -97,18 +98,6 @@ func removeLock(path string) {
 }
 
 func (d *Daemon) Clean() {
-	LogRecord(d.Logger, "info", "Except signal, exiting......")
+	Info("Except signal, exiting......")
 	removeLock(d.LockFilePath)
 }
-
-//sidecar.LogRecord(log_fd, "info", "Start Server......")
-//sidecar.LogRecord(log_fd, "info", "log location: "+log_path)
-//sidecar.LogRecord(log_fd, "info", "certificate location: "+cert_path)
-//log_path := sidecar.CreateDirIfNotExist("log")
-//if log_path == "" {
-//	panic("Create dir for log failed.")
-//}
-//cert_path := sidecar.CreateDirIfNotExist("certificate")
-//if cert_path == "" {
-//	panic("Create dir for certificate failed.")
-//}
