@@ -4,18 +4,32 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-type Config struct {
-	ProxyPort            int
-	Server               string
-	ComplexPath          string
-	GfwListUrl           string
+type SidecarPart struct {
+	ProxyPort      int
+	OnlyListenIPv4 bool
+	LogLevel       string
+}
+
+type RemoteProxyPart struct {
+	Server        string
+	ComplexPath   string
+	GfwListUrl    string
+	CustomHeaders map[string]string
+}
+
+type RemoteProxyConfPart struct {
 	EnableListenHTTP2    bool
 	EnableWebSocketProxy bool
 	EnableModernTLSOnly  bool
 	SSLCertificatePath   string
 	SSLPrivateKeyPath    string
 	NginxWorkDir         string
-	CustomHeaders        map[string]string
+}
+
+type Config struct {
+	Sidecar         SidecarPart
+	RemoteProxy     RemoteProxyPart
+	RemoteProxyConf RemoteProxyConfPart
 }
 
 func ReadConfig(path string) (cfg *Config) {

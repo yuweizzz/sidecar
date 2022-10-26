@@ -29,11 +29,17 @@ jobs:
         run: |
           cd cmd/sidecar-server
           cat << EOF > conf.toml
+          [Sidecar]
           ProxyPort = 4396
+          OnlyListenIPv4 = false
+          LogLevel = "info"
+
+          [RemoteProxy]
           Server = "$SERVER"
           ComplexPath = "$COMPLEXPATH"
           GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
-          [CustomHeaders]
+
+          [RemoteProxy.CustomHeaders]
           $CUSTOMHEADERNAME = "$CUSTOMHEADERVALUE"
           EOF
   

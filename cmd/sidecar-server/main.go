@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
+	"runtime"
 	"strconv"
 
 	"github.com/yuweizzz/sidecar"
 )
 
-func help() {
+func help(filename string) {
 	fmt.Println("Usage:")
-	fmt.Println("       sidecar-server start [-conf tomlfile] [-dir workdir] [-daemon]")
-	fmt.Println("       sidecar-server create-nginx-conf [-conf tomlfile] [-dir outputdir]")
-	fmt.Println("       sidecar-server stop [-dir workdir]")
+	fmt.Println("      ", filename, "start [-conf tomlfile] [-dir workdir] [-daemon]")
+	fmt.Println("      ", filename, "create-nginx-conf [-conf tomlfile] [-dir outputdir]")
+	fmt.Println("      ", filename, "stop [-dir workdir]")
 }
 
 func readConfig(path string) *sidecar.Config {
@@ -40,13 +42,14 @@ func main() {
 	createNginxConfCmd := flag.NewFlagSet("create-nginx-conf", flag.ExitOnError)
 	tomlPathForCreate := createNginxConfCmd.String("conf", pwd+"/conf.toml", "conf")
 	workDirForCreate := createNginxConfCmd.String("dir", pwd, "dir")
+	_, filename := path.Split(os.Args[0])
 
 	if len(os.Args) < 2 {
 		if os.Getenv("SPECIAL_MARK") == "ENABLED" {
 			cfg := readConfig(os.Getenv("CONF_PATH"))
 			run(cfg, os.Getenv("WORKDIR"), true)
 		} else {
-			help()
+			help(filename)
 		}
 		os.Exit(0)
 	}
@@ -57,7 +60,7 @@ func main() {
 		cfg := readConfig(*tomlPathForStart)
 		if *runDaemon {
 			cmd := &exec.Cmd{
-				Path:   "sidecar-server",
+				Path:   os.Args[0],
 				Env:    []string{"SPECIAL_MARK=ENABLED", "CONF_PATH=" + *tomlPathForStart, "WORKDIR=" + *workDirForStart},
 				Stdout: os.Stdout,
 				Stderr: os.Stdout,
@@ -72,10 +75,14 @@ func main() {
 		}
 	case "stop":
 		stopCmd.Parse(os.Args[2:])
-		pid := sidecar.ReadLock(*workDirForStop + "/sidecar-server.lock")
+		lockPath := *workDirForStop + "/sidecar-server.lock"
+		pid := sidecar.ReadLock(lockPath)
 		// if lock exist
 		if pid != 0 {
 			proc, _ := os.FindProcess(pid)
+			if runtime.GOOS == "windows" {
+				sidecar.RemoveLock(lockPath)
+			}
 			proc.Kill()
 			fmt.Println("Now Server is stopped.")
 		} else {
@@ -86,7 +93,7 @@ func main() {
 		cfg := readConfig(*tomlPathForCreate)
 		sidecar.RenderTemplateByConfig(*workDirForCreate, cfg)
 	default:
-		help()
+		help(filename)
 	}
 }
 
@@ -96,12 +103,13 @@ func run(cfg *sidecar.Config, workdir string, backgroud bool) {
 		CertPath:     workdir + "/sidecar.crt",
 		PriKeyPath:   workdir + "/sidecar.pri",
 		LockFilePath: workdir + "/sidecar-server.lock",
+		LogLevel:     cfg.Sidecar.LogLevel,
 	}
 	daemon.Perpare(backgroud)
 	pac := sidecar.NewPac(cfg)
-	proxy := sidecar.NewProxyServer(cfg.ProxyPort, daemon.Logger, pac)
-	forwarder := sidecar.NewNextProxyServer(proxy.Listener, daemon.Cert, daemon.PriKey, daemon.Logger, cfg.Server, cfg.ComplexPath, cfg.CustomHeaders)
-	sidecar.Info("Now Server is running and pid is "+strconv.Itoa(daemon.Pid))
+	proxy := sidecar.NewProxyServer(cfg.Sidecar.OnlyListenIPv4, cfg.Sidecar.ProxyPort, daemon.Logger, pac)
+	forwarder := sidecar.NewNextProxyServer(proxy.Listener, daemon.Cert, daemon.PriKey, daemon.Logger, cfg.RemoteProxy.Server, cfg.RemoteProxy.ComplexPath, cfg.RemoteProxy.CustomHeaders)
+	sidecar.Info("Now Server is running and pid is " + strconv.Itoa(daemon.Pid))
 	go proxy.Run()
 	go forwarder.Run()
 	forwarder.WatchSignal()

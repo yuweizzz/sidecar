@@ -10,17 +10,16 @@ import (
 )
 
 type Proxy struct {
-	Listener *Listener
-	server   *http.Server
-	port     string
-	logger   *os.File
+	Listener       *Listener
+	server         *http.Server
+	port           string
+	logger         *os.File
+	onlyListenIPv4 bool
 }
 
-func NewProxyServer(port int, fd *os.File, pac *Pac) *Proxy {
-	port_info := ":" + strconv.Itoa(port)
+func NewProxyServer(onlyListenIPv4 bool, port int, fd *os.File, pac *Pac) *Proxy {
 	listener := &Listener{Chan: make(chan net.Conn)}
 	server := &http.Server{
-		Addr: port_info,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if ifHttpRequest(r.URL.Scheme) {
 				proxyHandleHttp(w, r)
@@ -39,10 +38,11 @@ func NewProxyServer(port int, fd *os.File, pac *Pac) *Proxy {
 	}
 	server.Handler = http.AllowQuerySemicolons(server.Handler)
 	return &Proxy{
-		Listener: listener,
-		server:   server,
-		port:     port_info,
-		logger:   fd,
+		Listener:       listener,
+		server:         server,
+		port:           ":" + strconv.Itoa(port),
+		logger:         fd,
+		onlyListenIPv4: onlyListenIPv4,
 	}
 }
 
@@ -90,6 +90,7 @@ func directHandleHttps(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
+	Info("Send Request Directly, Host: ", r.Host)
 	go transfer(client_conn, dest_conn)
 	go transfer(dest_conn, client_conn)
 }
@@ -111,6 +112,7 @@ func proxyHandleHttps(l *Listener, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	l.SetDest(r.Host)
+	Info("Send Request via Proxy, Host: ", r.Host)
 	go transfer(next_proxy, proxy_output)
 	go transfer(proxy_output, next_proxy)
 	go func() {
@@ -119,6 +121,14 @@ func proxyHandleHttps(l *Listener, w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) Run() {
+	if p.onlyListenIPv4 {
+		l, err := net.Listen("tcp4", "0.0.0.0"+p.port)
+		if err != nil {
+			Panic(err)
+		}
+		p.server.Serve(l)
+	}
+	p.server.Addr = p.port
 	p.server.ListenAndServe()
 }
 

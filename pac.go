@@ -16,17 +16,16 @@ func NewPac(cfg *Config) *Pac {
 	p := &Pac{
 		Matcher: nil,
 	}
-	if cfg.GfwListUrl != "" {
-		p.getGfwList(cfg.Server, cfg.ComplexPath, cfg.CustomHeaders, cfg.GfwListUrl)
+	if cfg.RemoteProxy.GfwListUrl != "" {
+		p.getGfwList(cfg.RemoteProxy.Server, cfg.RemoteProxy.ComplexPath, cfg.RemoteProxy.CustomHeaders, cfg.RemoteProxy.GfwListUrl)
 	}
 	return p
 }
 
 func (p *Pac) getGfwList(server string, subpath string, headers map[string]string, url string) {
-	//url: https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		panic("fetch gfwlist failed.")
+		panic("Fetch GfwList failed.")
 	}
 	req_url := req.URL
 	raw_path := req_url.Path
@@ -38,8 +37,9 @@ func (p *Pac) getGfwList(server string, subpath string, headers map[string]strin
 	}
 	resp, err := http.DefaultTransport.RoundTrip(req)
 	if err != nil {
-		panic("fetch gfwlist failed.")
+		panic("Fetch GfwList failed.")
 	}
+	Info("Fetch GfwList from ", url)
 	decoder := base64.NewDecoder(base64.StdEncoding, resp.Body)
 	matcher := adblock.NewMatcher()
 	rules, _ := adblock.ParseRules(decoder)

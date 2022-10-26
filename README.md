@@ -7,4 +7,5 @@
 - [x] Support assistant log
 - [x] Auto create certificate
 - [x] Provide cmd tool
+- [ ] Support HTTP2
 - [ ] Refactoring

@@ -5,8 +5,8 @@ package sidecar
 
 import (
 	"os"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )

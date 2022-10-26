@@ -1,5 +1,5 @@
 *.crt
 *.pri
 *.log
-conf.toml
+*.toml
 sidecar-server.lock

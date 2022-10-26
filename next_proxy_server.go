@@ -41,8 +41,11 @@ func NewNextProxyServer(
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 		TLSConfig: &tls.Config{
 			GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				Debug("SNI ServerName is ", chi.ServerName)
 				if chi.ServerName == "" {
-					return GenTLSCert(strings.Split(l.Dest(), ":")[0], ca, pri)
+					ip := strings.Split(l.Dest(), ":")[0]
+					Debug("Empty SNI ServerName, Use IP Address instead: ", ip)
+					return GenTLSCert(ip, ca, pri)
 				}
 				return GenTLSCert(chi.ServerName, ca, pri)
 			},
@@ -73,6 +76,7 @@ func nextProxyHandleHttp(server string, subpath string, headers map[string]strin
 	dest_url.Scheme = "https"
 	dest_url.Host = server
 	in_path := dest_url.Path
+	Debug("Send Https Request to Remote Proxy, Host: ", in_req.Host, ", Uri: ", in_path)
 	dest_url.Path = "/" + subpath + "/" + in_req.Host + in_path
 	in_req.Host = server
 	for k, v := range headers {
@@ -100,6 +104,7 @@ func nextProxyHandleWs(server string, subpath string, headers map[string]string,
 	dest_url.Host = server
 	in_path := dest_url.Path
 	dest_url.Path = "/" + subpath + "/" + in_req.Host + in_path
+	Debug("Send WebSocket Request to Remote Proxy, Host: ", in_req.Host, ", Uri: ", in_path)
 	for k, v := range headers {
 		in_req.Header.Add(k, v)
 	}
