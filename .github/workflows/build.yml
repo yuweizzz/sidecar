@@ -25,24 +25,27 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           GOARCH="amd64" GOOS="darwin" make build
+          cp nginx_conf.tpl build/nginx_conf.tpl
 
       - name: Upload MacOS artifact
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: sidecar-release-${{ runner.os }}-amd64
+          name: sidecar-release-${{ github.ref_name }}-${{ runner.os }}-amd64
           path: build/*
 
       - name: Build linux app
         if: matrix.os == 'ubuntu-latest'
         run: |
           GOARCH="amd64" GOOS="linux" make build
+          cp nginx_conf.tpl build/nginx_conf.tpl
+          cp scripts/linux/* build/
 
       - name: Upload linux artifact
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: sidecar-release-${{ runner.os }}-amd64
+          name: sidecar-release-${{ github.ref_name }}-${{ runner.os }}-amd64
           path: build/*
 
       - name: Build Windows app
@@ -51,12 +54,14 @@ jobs:
           make clean
           GOARCH="amd64" GOOS="windows" make build
           mv build/sidecar-server build/sidecar-server.exe
+          cp nginx_conf.tpl build/nginx_conf.tpl
+          cp scripts/windows/* build/
 
       - name: Upload Windows artifact
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: sidecar-release-Windows-amd64
+          name: sidecar-release-${{ github.ref_name }}-windows-amd64
           path: build/*
 
   release:

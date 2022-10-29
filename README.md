@@ -1,3 +1,7 @@
+## Introduction
+
+Sidecar is a https proxy server based on MITM.
+
 ## Feature
 
 - [x] HTTP proxy
@@ -9,3 +13,11 @@
 - [x] Provide cmd tool
 - [ ] Support HTTP2
 - [ ] Refactoring
+
+## Get Started
+
+Here is [User Manual](https://github.com/yuweizzz/sidecar/blob/master/docs/zh.md).
+
+## License
+
+[GPL-2.0 license](https://github.com/yuweizzz/sidecar/blob/master/LICENSE)

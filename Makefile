@@ -14,7 +14,6 @@ lint:
 .PHONY: build
 build:
 	go build -o $(OUTPUTDIR)/$(SIDECAR_SERVER) $(SIDECAR_SERVER_DIR)/$(MAIN)
-	cp $(CURDIR)/nginx_conf.tpl $(OUTPUTDIR)/nginx_conf.tpl
 
 .PHONY: clean
 clean:
