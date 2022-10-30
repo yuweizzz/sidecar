@@ -24,8 +24,7 @@ jobs:
       - name: Build MacOS app
         if: matrix.os == 'macos-latest'
         run: |
-          GOARCH="amd64" GOOS="darwin" make build
-          cp nginx_conf.tpl build/nginx_conf.tpl
+          make mac
 
       - name: Upload MacOS artifact
         if: matrix.os == 'macos-latest'
@@ -37,9 +36,7 @@ jobs:
       - name: Build linux app
         if: matrix.os == 'ubuntu-latest'
         run: |
-          GOARCH="amd64" GOOS="linux" make build
-          cp nginx_conf.tpl build/nginx_conf.tpl
-          cp scripts/linux/* build/
+          make linux
 
       - name: Upload linux artifact
         if: matrix.os == 'ubuntu-latest'
@@ -51,11 +48,7 @@ jobs:
       - name: Build Windows app
         if: matrix.os == 'ubuntu-latest'
         run: |
-          make clean
-          GOARCH="amd64" GOOS="windows" make build
-          mv build/sidecar-server build/sidecar-server.exe
-          cp nginx_conf.tpl build/nginx_conf.tpl
-          cp scripts/windows/* build/
+          make windows
 
       - name: Upload Windows artifact
         if: matrix.os == 'ubuntu-latest'
