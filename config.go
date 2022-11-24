@@ -5,15 +5,16 @@ import (
 )
 
 type SidecarPart struct {
-	ProxyPort      int
-	OnlyListenIPv4 bool
-	LogLevel       string
+	ProxyPort        int
+	OnlyListenIPv4   bool
+	LogLevel         string
+	GfwListUrl       string
+	CustomProxyHosts []string
 }
 
 type RemoteProxyPart struct {
 	Server        string
 	ComplexPath   string
-	GfwListUrl    string
 	CustomHeaders map[string]string
 }
 

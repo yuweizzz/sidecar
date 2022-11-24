@@ -33,11 +33,11 @@ jobs:
           ProxyPort = 4396
           OnlyListenIPv4 = false
           LogLevel = "info"
+          GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
 
           [RemoteProxy]
           Server = "$SERVER"
           ComplexPath = "$COMPLEXPATH"
-          GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
 
           [RemoteProxy.CustomHeaders]
           $CUSTOMHEADERNAME = "$CUSTOMHEADERVALUE"
@@ -60,7 +60,7 @@ jobs:
           sleep 30
           cat cmd/sidecar-server/server.log
           sudo netstat -nutlp
-  
+
       - name: Send Test request
         run: |
           curl -v -I -x 127.0.0.1:4396 https://www.google.com

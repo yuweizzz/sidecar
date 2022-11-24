@@ -9,16 +9,19 @@
 运行服务时需要 `conf.toml` 文件：
 
 ``` bash
-# conf.toml
+# conf.toml example
 [Sidecar]
 ProxyPort = 4396
 OnlyListenIPv4 = true
 LogLevel = "info"
+GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
+CustomProxyHosts = [
+    "github.com",
+]
 
 [RemoteProxy]
 Server = "remote.server.com"  # 使用时需要替换为实际的远端服务域名
 ComplexPath = "FreeFreeFree"  # 使用时需要替换为实际的远端服务入口路径
-GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
 
 [RemoteProxy.CustomHeaders]
 # 使用时需要替换为实际的远端服务允许通过的 Header
@@ -51,6 +54,16 @@ SSLPrivateKeyPath = "/usr/local/openresty/nginx/conf/proxy/proxy.pri"
 ``` bash
 export HTTPS_PROXY=127.0.0.1:4396
 ```
+
+## 特性
+
+### PAC
+
+PAC 使用了 `GfwListUrl` 和 `CustomProxyHosts` 来定义代理规则，可以在 `conf.toml` 中将两个配置项全部注释来启用全局代理。
+
+只使用 `GfwListUrl` 则按照 `gfwlist.txt` 中定义的规则进行智能代理，只使用 `CustomProxyHosts` 则按照定义的二级域名列表进行代理，其余请求直接访问。
+
+`GfwListUrl` 和 `CustomProxyHosts` 可以同时使用，但是 `gfwlist.txt` 中白名单的优先级会高于 `CustomProxyHosts` 中定义的二级域名。 `CustomProxyHosts` 可以用于补偿未被 `gfwlist.txt` 收录的规则。
 
 ## 感谢
 

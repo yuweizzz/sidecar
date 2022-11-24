@@ -16,8 +16,11 @@ func NewPac(cfg *Config) *Pac {
 	p := &Pac{
 		Matcher: nil,
 	}
-	if cfg.RemoteProxy.GfwListUrl != "" {
-		p.getGfwList(cfg.RemoteProxy.Server, cfg.RemoteProxy.ComplexPath, cfg.RemoteProxy.CustomHeaders, cfg.RemoteProxy.GfwListUrl)
+	if cfg.Sidecar.GfwListUrl != "" {
+		p.getGfwList(cfg.RemoteProxy.Server, cfg.RemoteProxy.ComplexPath, cfg.RemoteProxy.CustomHeaders, cfg.Sidecar.GfwListUrl)
+	}
+	if cfg.Sidecar.CustomProxyHosts != nil {
+		p.ExpandHosts(cfg.Sidecar.CustomProxyHosts)
 	}
 	return p
 }
@@ -41,12 +44,30 @@ func (p *Pac) getGfwList(server string, subpath string, headers map[string]strin
 	}
 	Info("Fetch GfwList from ", url)
 	decoder := base64.NewDecoder(base64.StdEncoding, resp.Body)
-	matcher := adblock.NewMatcher()
+	if p.Matcher == nil {
+		p.Matcher = adblock.NewMatcher()
+	}
 	rules, _ := adblock.ParseRules(decoder)
 	for _, rule := range rules {
-		matcher.AddRule(rule, 0)
+		p.Matcher.AddRule(rule, 0)
 	}
-	p.Matcher = matcher
+}
+
+func (p *Pac) ExpandHosts(list []string) {
+	if p.Matcher == nil {
+		p.Matcher = adblock.NewMatcher()
+	}
+	var rule *adblock.Rule
+	var err error
+	for _, host := range list {
+		rule, err = adblock.ParseRule("||" + host)
+		if err != nil {
+			Debug("Parse Pac Rule failed, host: ", host)
+			continue
+		}
+		p.Matcher.AddRule(rule, 0)
+		Debug("Parse Pac Rule host: ", host)
+	}
 }
 
 func (p *Pac) Compare(req *http.Request) bool {

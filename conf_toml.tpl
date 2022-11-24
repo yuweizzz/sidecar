@@ -2,11 +2,14 @@
 ProxyPort = 4396
 OnlyListenIPv4 = true
 LogLevel = "info"
+GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
+CustomProxyHosts = [
+    "github.com",
+]
 
 [RemoteProxy]
 Server = "remote.server.com"  # 需要替换为实际的远端服务域名
 ComplexPath = "FreeFreeFree"  # 需要替换为实际的远端服务入口路径
-GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
 
 [RemoteProxy.CustomHeaders]
 # 需要替换为实际的远端服务允许通过的 Header
