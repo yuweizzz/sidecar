@@ -1,9 +1,7 @@
 package sidecar
 
 import (
-	"crypto/rsa"
 	"crypto/tls"
-	"crypto/x509"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -17,8 +15,6 @@ import (
 type NextProxy struct {
 	Listener      *Listener
 	server        *http.Server
-	ca            *x509.Certificate
-	privateKey    *rsa.PrivateKey
 	logger        *os.File
 	destination   string
 	complexPath   string
@@ -26,7 +22,7 @@ type NextProxy struct {
 }
 
 func NewNextProxyServer(
-	l *Listener, ca *x509.Certificate, pri *rsa.PrivateKey, fd *os.File,
+	l *Listener, cache *CertLRU, fd *os.File,
 	destination string, complex_path string, headers map[string]string,
 ) *NextProxy {
 	server := &http.Server{
@@ -41,13 +37,11 @@ func NewNextProxyServer(
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 		TLSConfig: &tls.Config{
 			GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				Debug("SNI ServerName is ", chi.ServerName)
-				if chi.ServerName == "" {
-					ip := strings.Split(l.Dest(), ":")[0]
-					Debug("Empty SNI ServerName, Use IP Address instead: ", ip)
-					return GenTLSCert(ip, ca, pri)
+				sni := chi.ServerName
+				if sni == "" {
+					sni = strings.Split(l.Dest(), ":")[0]
 				}
-				return GenTLSCert(chi.ServerName, ca, pri)
+				return cache.GetCert(sni)
 			},
 		},
 	}
@@ -55,8 +49,6 @@ func NewNextProxyServer(
 	return &NextProxy{
 		Listener:      l,
 		server:        server,
-		ca:            ca,
-		privateKey:    pri,
 		logger:        fd,
 		destination:   destination,
 		complexPath:   complex_path,

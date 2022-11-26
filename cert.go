@@ -11,7 +11,10 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"sync"
 	"time"
+
+	"github.com/golang/groupcache/lru"
 )
 
 func ReadPriKey(name string) (pri *rsa.PrivateKey) {
@@ -116,6 +119,39 @@ func GenTLSCert(hostname string, crt *x509.Certificate, pri *rsa.PrivateKey) (tl
 	tls_cert = &tls.Certificate{
 		Certificate: [][]byte{bytes},
 		PrivateKey:  pri,
+	}
+	return
+}
+
+type CertLRU struct {
+	ca    *x509.Certificate
+	pri   *rsa.PrivateKey
+	cache *lru.Cache
+	mutex sync.Mutex
+}
+
+func NewCertLRU(ca *x509.Certificate, pri *rsa.PrivateKey) *CertLRU {
+	return &CertLRU{
+		cache: lru.New(100),
+		ca:    ca,
+		pri:   pri,
+	}
+}
+
+func (c *CertLRU) GetCert(sni string) (tls_cert *tls.Certificate, err error) {
+	c.mutex.Lock()
+	if tls_cert, ok := c.cache.Get(sni); ok {
+		c.mutex.Unlock()
+		Debug("Hit Certificate Cache, SNI ServerName is ", sni)
+		return tls_cert.(*tls.Certificate), nil
+	}
+	c.mutex.Unlock()
+	tls_cert, err = GenTLSCert(sni, c.ca, c.pri)
+	if err == nil {
+		c.mutex.Lock()
+		Debug("Miss Certificate Cache, Create and Cache It, SNI ServerName is ", sni)
+		c.cache.Add(sni, tls_cert)
+		c.mutex.Unlock()
 	}
 	return
 }
