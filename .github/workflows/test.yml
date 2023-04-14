@@ -21,13 +21,13 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.19
-  
+
       - name: Download module
         run: go mod download
-  
+
       - name: Write config.toml
         run: |
-          cd cmd/sidecar
+          cd cmd/sidecar/
           cat << EOF > config.toml
           [Client]
           ProxyPort = 4396
@@ -47,23 +47,23 @@ jobs:
           $CUSTOMHEADERNAME = "$CUSTOMHEADERVALUE"
           EOF
 
-      - name: Run Client
+      - name: Run sidecar client
         run: |
-          cd cmd/sidecar
+          cd cmd/sidecar/
           go build -o sidecar main.go
           ./sidecar client -action start
-  
+
+      - name: Check process info
+        run: |
+          # sleep 15s wait for server up
+          sleep 15
+          cat cmd/sidecar/sidecar.log
+          sudo netstat -nutlp
+
       - name: Trust Cert
         run: |
           sudo cp cmd/sidecar/sidecar-client.crt /usr/local/share/ca-certificates/sidecar.crt
           sudo update-ca-certificates
-  
-      - name: Check process info
-        run: |
-          # sleep 30s wait for server up
-          sleep 30
-          cat cmd/sidecar/sidecar.log
-          sudo netstat -nutlp
 
       - name: Send Test request
         run: |

@@ -26,6 +26,7 @@ type Daemon struct {
 
 func (d *Daemon) Perpare(backgroud bool) {
 	if backgroud {
+		fmt.Println(d.WorkDir)
 		log_fd := CreateFileIfNotExist(d.WorkDir + "/sidecar.log")
 		if log_fd == nil {
 			log_fd = OpenExistFile(d.WorkDir + "/sidecar.log")

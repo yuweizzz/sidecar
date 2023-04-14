@@ -54,15 +54,15 @@ type Config struct {
 	Server Server
 }
 
-func ReadConfig(path string) (cfg *Config) {
-	if _, err := toml.DecodeFile(path, &cfg); err != nil {
+func ReadClientConfig(path string) (cfg *Config) {
+	configPath := DetectFile(path)
+	if configPath == "" {
+		panic("Run failed, config.toml not exist.")
+	}
+	pwd, _ := os.Getwd()
+	if _, err := toml.DecodeFile(configPath, &cfg); err != nil {
 		panic(err)
 	}
-	return
-}
-
-func ClientConfigCheck(cfg *Config) {
-	pwd, _ := os.Getwd()
 	if cfg.Client.WorkDir == "" {
 		cfg.Client.WorkDir = pwd
 	}
@@ -75,10 +75,18 @@ func ClientConfigCheck(cfg *Config) {
 	if cfg.Client.RemoteServers == nil {
 		panic("You have to config one remote server at least.")
 	}
+	return
 }
 
-func ServerConfigCheck(cfg *Config) {
+func ReadServerConfig(path string) (cfg *Config) {
+	configPath := DetectFile(path)
+	if configPath == "" {
+		panic("Run failed, config.toml not exist.")
+	}
 	pwd, _ := os.Getwd()
+	if _, err := toml.DecodeFile(configPath, &cfg); err != nil {
+		panic(err)
+	}
 	if cfg.Server.WorkDir == "" {
 		cfg.Server.WorkDir = pwd
 	}
@@ -88,4 +96,6 @@ func ServerConfigCheck(cfg *Config) {
 	if cfg.Server.CertPath == "" {
 		panic("As Server, you have to specify the Certificate.")
 	}
+	return
 }
+	

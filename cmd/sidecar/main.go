@@ -19,15 +19,6 @@ func help(filename string) {
 	fmt.Println("      ", filename, "server -action {start|stop|create-nginx-conf} [-conf ./config.toml]")
 }
 
-func readConfig(path string) *sidecar.Config {
-	configPath := sidecar.DetectFile(path)
-	if configPath == "" {
-		panic("Run failed, config.toml not exist.")
-	} else {
-		return sidecar.ReadConfig(configPath)
-	}
-}
-
 func main() {
 	// basic info
 	_, filename := path.Split(os.Args[0])
@@ -47,11 +38,13 @@ func main() {
 	// for run as daemon
 	if len(os.Args) < 2 {
 		if os.Getenv("SPECIAL_MARK") == "ENABLED" {
-			cfg := readConfig(os.Getenv("CONF_PATH"))
+			path := os.Getenv("CONF_PATH")
 			switch os.Getenv("TYPE") {
 			case "client":
+				cfg := sidecar.ReadClientConfig(path)
 				runClient(cfg)
 			case "server":
+				cfg := sidecar.ReadServerConfig(path)
 				runServer(cfg)
 			}
 		} else {
@@ -63,8 +56,7 @@ func main() {
 	switch os.Args[1] {
 	case "client":
 		clientCmd.Parse(os.Args[2:])
-		cfg := readConfig(*configClientPath)
-		sidecar.ClientConfigCheck(cfg)
+		cfg := sidecar.ReadClientConfig(*configClientPath)
 		switch *clientAction {
 		case "start":
 			if cfg.Client.RunAsDaemon {
@@ -103,8 +95,7 @@ func main() {
 		}
 	case "server":
 		serverCmd.Parse(os.Args[2:])
-		cfg := readConfig(*configServerPath)
-		sidecar.ServerConfigCheck(cfg)
+		cfg := sidecar.ReadServerConfig(*configServerPath)
 		switch *serverAction {
 		case "start":
 			if cfg.Server.RunAsDaemon {
@@ -162,6 +153,7 @@ func runClient(cfg *sidecar.Config) {
 	cache := sidecar.NewCertLRU(daemon.Cert, daemon.PriKey)
 	forwarder := sidecar.NewNextProxyServer(proxy.Listener, cache, daemon.Logger,
 		cfg.Client.RemoteServers[0].Host, cfg.Client.RemoteServers[0].ComplexPath, cfg.Client.RemoteServers[0].CustomHeaders)
+	sidecar.Info("Now Server is run as a Client.")
 	sidecar.Info("Now Server is running and pid is " + strconv.Itoa(daemon.Pid))
 	go proxy.Run()
 	go forwarder.Run()
@@ -179,6 +171,7 @@ func runServer(cfg *sidecar.Config) {
 	daemon.Perpare(cfg.Server.RunAsDaemon)
 	server := sidecar.NewRemoteServer(cfg.Server.ServerPort, daemon.Logger, daemon.CertPath, daemon.PriKeyPath,
 		cfg.Server.OnlyListenIPv4, cfg.Server.ComplexPath, cfg.Server.CustomHeaders)
+	sidecar.Info("Now Server is run as a Server.")
 	sidecar.Info("Now Server is running and pid is " + strconv.Itoa(daemon.Pid))
 	go server.Run()
 	daemon.WatchSignal()
