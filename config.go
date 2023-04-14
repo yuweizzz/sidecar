@@ -34,6 +34,7 @@ type Server struct {
 	LogLevel       string
 	PriKeyPath     string
 	CertPath       string
+	Host           string
 	ComplexPath    string
 	CustomHeaders  map[string]string
 	NginxConf      NginxConf

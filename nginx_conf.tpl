@@ -1,6 +1,6 @@
 worker_processes auto;
-error_log {{ .RemoteProxyConf.NginxWorkDir | ConfirmSlash }}error.log;
-pid {{ .RemoteProxyConf.NginxWorkDir | ConfirmSlash }}nginx.pid;
+error_log {{ .Server.NginxConf.NginxWorkDir | ConfirmSlash }}error.log;
+pid {{ .Server.NginxConf.NginxWorkDir | ConfirmSlash }}nginx.pid;
 
 worker_rlimit_nofile 65535;
 events {
@@ -9,7 +9,7 @@ events {
 }
 
 http {
-    {{ if .RemoteProxyConf.EnableWebSocketProxy }}
+    {{ if .Server.NginxConf.EnableWebSocketProxy }}
     map $http_upgrade $connection_upgrade {
         default upgrade;
         '' close;
@@ -30,14 +30,14 @@ http {
         '"upstream_response_time": "$upstream_response_time",'
         '"body_bytes_sent": "$body_bytes_sent",'
     '}';
-    access_log {{ .RemoteProxyConf.NginxWorkDir | ConfirmSlash }}access.log main;
+    access_log {{ .Server.NginxConf.NginxWorkDir | ConfirmSlash }}access.log main;
 
     server {
-        listen 443 ssl {{ if .RemoteProxyConf.EnableListenHTTP2 }}http2{{ end }};
-        server_name {{ .RemoteProxy.Server }};
-        ssl_certificate {{ .RemoteProxyConf.SSLCertificatePath }};
-        ssl_certificate_key {{ .RemoteProxyConf.SSLPrivateKeyPath }};
-        {{ if .RemoteProxyConf.EnableModernTLSOnly }}
+        listen 443 ssl {{ if .Server.NginxConf.EnableListenHTTP2 }}http2{{ end }};
+        server_name {{ .Server.Host }};
+        ssl_certificate {{ .Server.NginxConf.SSLCertificatePath }};
+        ssl_certificate_key {{ .Server.NginxConf.SSLPrivateKeyPath }};
+        {{ if .Server.NginxConf.EnableModernTLSOnly }}
         ssl_protocols TLSv1.3;
         ssl_prefer_server_ciphers off;
         {{ else }}
@@ -47,20 +47,20 @@ http {
         {{ end }}
         ssl_session_timeout 5m;
         client_header_buffer_size 16k;
-        location ^~/{{ .RemoteProxy.ComplexPath }}/ {
+        location ^~/{{ .Server.ComplexPath }}/ {
             resolver 1.1.1.1 ipv6=off;
-            {{range $key,$value := .RemoteProxy.CustomHeaders}}
+            {{range $key,$value := .Server.CustomHeaders}}
             if ( $http_{{ $key | ToLower }} != '{{ $value }}' ){
                 return 404;
             }
             {{end}}
             set $_full_uri $uri$is_args$args;
-            if ( $_full_uri ~ /{{ .RemoteProxy.ComplexPath }}/([^/]+)/(.*) ){
+            if ( $_full_uri ~ /{{ .Server.ComplexPath }}/([^/]+)/(.*) ){
                 set $_host $1;
                 set $_uri $2;
             }
             proxy_pass $scheme://$_host/$_uri;
-            proxy_redirect https://{{ .RemoteProxy.Server }}/{{ .RemoteProxy.ComplexPath }}/ /;
+            proxy_redirect https://{{ .Server.Host }}/{{ .Server.ComplexPath }}/ /;
             proxy_buffer_size 256k;
             proxy_buffers 64 32k;
             proxy_busy_buffers_size 1m;
@@ -68,10 +68,10 @@ http {
             proxy_max_temp_file_size 128m;
             proxy_set_header Host $_host;
             proxy_ssl_server_name on;
-            {{ range $key,$value := .RemoteProxy.CustomHeaders}}
+            {{ range $key,$value := .Server.CustomHeaders}}
             proxy_set_header {{ $key | ToLower }} '';
             {{end}}
-            {{ if .RemoteProxyConf.EnableWebSocketProxy }}
+            {{ if .Server.NginxConf.EnableWebSocketProxy }}
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;

@@ -37,6 +37,8 @@ PriKeyPath = ""
 # 远端服务的私钥路径，必须自行填写
 CertPath = ""
 LogLevel = "info"
+# 服务域名，只用于 nginx 配置生成
+Host = "remote.server.hostname"
 # 混杂路径，可以自定义的入口路径
 ComplexPath = "XxXxXxXxX"
 
