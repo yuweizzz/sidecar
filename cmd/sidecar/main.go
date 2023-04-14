@@ -64,6 +64,7 @@ func main() {
 	case "client":
 		clientCmd.Parse(os.Args[2:])
 		cfg := readConfig(*configClientPath)
+		sidecar.ClientConfigCheck(cfg)
 		switch *clientAction {
 		case "start":
 			if cfg.Client.RunAsDaemon {
@@ -103,6 +104,7 @@ func main() {
 	case "server":
 		serverCmd.Parse(os.Args[2:])
 		cfg := readConfig(*configServerPath)
+		sidecar.ServerConfigCheck(cfg)
 		switch *serverAction {
 		case "start":
 			if cfg.Server.RunAsDaemon {

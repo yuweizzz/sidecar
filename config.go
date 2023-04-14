@@ -55,10 +55,14 @@ type Config struct {
 }
 
 func ReadConfig(path string) (cfg *Config) {
-	pwd, _ := os.Getwd()
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		panic(err)
 	}
+	return
+}
+
+func ClientConfigCheck(cfg *Config) {
+	pwd, _ := os.Getwd()
 	if cfg.Client.WorkDir == "" {
 		cfg.Client.WorkDir = pwd
 	}
@@ -71,6 +75,10 @@ func ReadConfig(path string) (cfg *Config) {
 	if cfg.Client.RemoteServers == nil {
 		panic("You have to config one remote server at least.")
 	}
+}
+
+func ServerConfigCheck(cfg *Config) {
+	pwd, _ := os.Getwd()
 	if cfg.Server.WorkDir == "" {
 		cfg.Server.WorkDir = pwd
 	}
@@ -80,5 +88,4 @@ func ReadConfig(path string) (cfg *Config) {
 	if cfg.Server.CertPath == "" {
 		panic("As Server, you have to specify the Certificate.")
 	}
-	return
 }

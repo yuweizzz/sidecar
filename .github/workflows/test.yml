@@ -46,7 +46,7 @@ jobs:
           [Client.RemoteServers.CustomHeaders]
           $CUSTOMHEADERNAME = "$CUSTOMHEADERVALUE"
           EOF
-  
+
       - name: Run Client
         run: |
           cd cmd/sidecar
@@ -55,7 +55,7 @@ jobs:
   
       - name: Trust Cert
         run: |
-          sudo cp cmd/sidecar/sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
+          sudo cp cmd/sidecar/sidecar-client.crt /usr/local/share/ca-certificates/sidecar.crt
           sudo update-ca-certificates
   
       - name: Check process info
