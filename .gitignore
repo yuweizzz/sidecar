@@ -2,4 +2,4 @@
 *.pri
 *.log
 *.toml
-sidecar-server.lock
+*.lock

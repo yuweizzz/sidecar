@@ -6,9 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -120,16 +118,4 @@ func nextProxyHandleWs(server string, subpath string, headers map[string]string,
 
 func (p *NextProxy) Run() {
 	p.server.ServeTLS(p.Listener, "", "")
-}
-
-func (p *NextProxy) WatchSignal() {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	done := make(chan bool, 1)
-	go func() {
-		<-sigs
-		done <- true
-	}()
-	Info("Awaiting signal......")
-	<-done
 }

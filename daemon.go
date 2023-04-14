@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"runtime"
 	"strconv"
+	"syscall"
 )
 
 type Daemon struct {
@@ -24,9 +26,9 @@ type Daemon struct {
 
 func (d *Daemon) Perpare(backgroud bool) {
 	if backgroud {
-		log_fd := CreateFileIfNotExist(d.WorkDir + "/server.log")
+		log_fd := CreateFileIfNotExist(d.WorkDir + "/sidecar.log")
 		if log_fd == nil {
-			log_fd = OpenExistFile(d.WorkDir + "/server.log")
+			log_fd = OpenExistFile(d.WorkDir + "/sidecar.log")
 		}
 		d.Logger = log_fd
 	} else {
@@ -44,7 +46,7 @@ func (d *Daemon) Perpare(backgroud bool) {
 				exitWhenLocked(pid)
 			} else {
 				// if process not alive
-				Info("File sidecar-server.lock exist, file path is ", d.LockFilePath, ", but process is not running.....")
+				Info("File sidecar.lock exist, file path is ", d.LockFilePath, ", but process is not running.....")
 				RemoveLock(d.LockFilePath)
 			}
 		} else {
@@ -52,6 +54,10 @@ func (d *Daemon) Perpare(backgroud bool) {
 		}
 	}
 	d.Pid = os.Getpid()
+	writeLock(d.Pid, d.LockFilePath)
+}
+
+func (d *Daemon) LoadCertAndPriKey() {
 	if pri_file_path := DetectFile(d.PriKeyPath); pri_file_path == "" {
 		pri_fd := CreateFileIfNotExist(d.PriKeyPath)
 		d.PriKey = GenAndSavePriKey(pri_fd)
@@ -68,7 +74,6 @@ func (d *Daemon) Perpare(backgroud bool) {
 		d.Cert = ReadRootCert(d.CertPath)
 		Info("Use exist certificate, file path is ", crt_file_path)
 	}
-	writeLock(d.Pid, d.LockFilePath)
 }
 
 func ReadLock(path string) (pid int) {
@@ -104,13 +109,22 @@ func RemoveLock(path string) {
 }
 
 func exitWhenLocked(pid int) {
-	fmt.Println("Start Server failed because sidecar-server.lock exist, maybe Server is already running and pid is ", pid)
-	fmt.Println("If you confirm Server is not running, remove sidecar-server.lock and retry.")
+	fmt.Println("Start Server failed because sidecar.lock exist, maybe Server is already running and pid is ", pid)
+	fmt.Println("If you confirm Server is not running, remove sidecar.lock and retry.")
 	os.Exit(2)
 }
 
-func (d *Daemon) Clean() {
+func (d *Daemon) WatchSignal() {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	done := make(chan bool, 1)
+	go func() {
+		<-sigs
+		done <- true
+	}()
+	Info("Awaiting signal......")
+	<-done
 	Info("Except signal, exiting......")
-	Info("Remove sidecar-server.lock......")
+	Info("Remove sidecar.lock......")
 	RemoveLock(d.LockFilePath)
 }
