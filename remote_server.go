@@ -2,12 +2,12 @@ package sidecar
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -15,7 +15,7 @@ import (
 type RemoteServer struct {
 	server         *http.Server
 	logger         *os.File
-	port           string
+	port           int
 	onlyListenIPv4 bool
 	priKeyPath     string
 	certPath       string
@@ -24,7 +24,7 @@ type RemoteServer struct {
 }
 
 func NewRemoteServer(
-	port string, fd *os.File, cert_path string, prikey_path string, only_listen_ipv4 bool,
+	port int, fd *os.File, cert_path string, prikey_path string, only_listen_ipv4 bool,
 	complex_path string, headers map[string]string,
 ) *RemoteServer {
 	server := &http.Server{
@@ -57,7 +57,7 @@ func (r *RemoteServer) proxyRequest(w http.ResponseWriter, req *http.Request) {
 	req.URL = TrueURL
 	req.Host = Infos[2]
 	req.RequestURI = TrueURL.RequestURI()
-	Info("Request Info After Rewrite: Host is", req.Host, ", Uri is", req.RequestURI)
+	Info("Request Info After Rewrite: Host is ", req.Host, ", Uri is ", req.RequestURI)
 	resp, err := http.DefaultTransport.RoundTrip(req)
 	if err != nil {
 		return
@@ -70,15 +70,16 @@ func (r *RemoteServer) proxyRequest(w http.ResponseWriter, req *http.Request) {
 }
 
 func (r *RemoteServer) Run() {
+	addr := ":" + strconv.Itoa(r.port)
 	http.HandleFunc("/", http.NotFound)
 	http.HandleFunc("/"+r.complexPath+"/", r.proxyRequest)
 	if r.onlyListenIPv4 {
-		l, err := net.Listen("tcp4", "0.0.0.0"+r.port)
+		l, err := net.Listen("tcp4", "0.0.0.0"+addr)
 		if err != nil {
 			Panic(err)
 		}
 		r.server.ServeTLS(l, r.certPath, r.priKeyPath)
 	}
-	r.server.Addr = r.port
+	r.server.Addr = addr
 	r.server.ListenAndServeTLS(r.certPath, r.priKeyPath)
 }
