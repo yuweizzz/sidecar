@@ -25,40 +25,44 @@ jobs:
       - name: Download module
         run: go mod download
   
-      - name: Write conf.toml
+      - name: Write config.toml
         run: |
-          cd cmd/sidecar-server
-          cat << EOF > conf.toml
-          [Sidecar]
+          cd cmd/sidecar
+          cat << EOF > config.toml
+          [Client]
           ProxyPort = 4396
-          OnlyListenIPv4 = false
+          OnlyListenIPv4 = true
+          RunAsDaemon = true
+          WorkDir = ""
+          PriKeyPath = ""
+          CertPath = ""
           LogLevel = "info"
           GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
 
-          [RemoteProxy]
-          Server = "$SERVER"
+          [[Client.RemoteServers]]
+          Host = "$SERVER"
           ComplexPath = "$COMPLEXPATH"
 
-          [RemoteProxy.CustomHeaders]
+          [Client.RemoteServers.CustomHeaders]
           $CUSTOMHEADERNAME = "$CUSTOMHEADERVALUE"
           EOF
   
-      - name: Run Server
+      - name: Run Client
         run: |
-          cd cmd/sidecar-server
-          go build -o sidecar-server main.go
-          ./sidecar-server start -daemon
+          cd cmd/sidecar
+          go build -o sidecar main.go
+          ./sidecar client -action start
   
       - name: Trust Cert
         run: |
-          sudo cp cmd/sidecar-server/sidecar.crt /usr/local/share/ca-certificates/sidecar.crt
+          sudo cp cmd/sidecar/sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
           sudo update-ca-certificates
   
       - name: Check process info
         run: |
           # sleep 30s wait for server up
           sleep 30
-          cat cmd/sidecar-server/server.log
+          cat cmd/sidecar/sidecar.log
           sudo netstat -nutlp
 
       - name: Send Test request
