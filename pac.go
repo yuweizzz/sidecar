@@ -12,15 +12,15 @@ type Pac struct {
 	Matcher *adblock.RuleMatcher
 }
 
-func NewPac(cfg *Config) *Pac {
+func NewPac(server RemoteServerInfo, gfwUrl string, customHosts []string) *Pac {
 	p := &Pac{
 		Matcher: nil,
 	}
-	if cfg.Sidecar.GfwListUrl != "" {
-		p.getGfwList(cfg.RemoteProxy.Server, cfg.RemoteProxy.ComplexPath, cfg.RemoteProxy.CustomHeaders, cfg.Sidecar.GfwListUrl)
+	if gfwUrl != "" {
+		p.getGfwList(server.Host, server.ComplexPath, server.CustomHeaders, gfwUrl)
 	}
-	if cfg.Sidecar.CustomProxyHosts != nil {
-		p.ExpandHosts(cfg.Sidecar.CustomProxyHosts)
+	if customHosts != nil {
+		p.ExpandHosts(customHosts)
 	}
 	return p
 }
@@ -28,7 +28,7 @@ func NewPac(cfg *Config) *Pac {
 func (p *Pac) getGfwList(server string, subpath string, headers map[string]string, url string) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		panic("Fetch GfwList failed.")
+		Panic("Fetch GfwList failed.")
 	}
 	req_url := req.URL
 	raw_path := req_url.Path
@@ -40,7 +40,7 @@ func (p *Pac) getGfwList(server string, subpath string, headers map[string]strin
 	}
 	resp, err := http.DefaultTransport.RoundTrip(req)
 	if err != nil {
-		panic("Fetch GfwList failed.")
+		Panic("Fetch GfwList failed.")
 	}
 	Info("Fetch GfwList from ", url)
 	decoder := base64.NewDecoder(base64.StdEncoding, resp.Body)
