@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type NextProxy struct {
+type MitMServer struct {
 	Listener      *Listener
 	server        *http.Server
 	logger        *os.File
@@ -19,16 +19,16 @@ type NextProxy struct {
 	customHeaders map[string]string
 }
 
-func NewNextProxyServer(
+func NewMitMServer(
 	l *Listener, cache *CertLRU, fd *os.File,
 	destination string, complex_path string, headers map[string]string,
-) *NextProxy {
+) *MitMServer {
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if ifWebSocketReq(r) {
-				nextProxyHandleWs(destination, complex_path, headers, w, r)
+				MitMHandleWs(destination, complex_path, headers, w, r)
 			} else {
-				nextProxyHandleHttp(destination, complex_path, headers, w, r)
+				MitMHandleHttp(destination, complex_path, headers, w, r)
 			}
 		}),
 		IdleTimeout:  5 * time.Second,
@@ -44,7 +44,7 @@ func NewNextProxyServer(
 		},
 	}
 	server.Handler = http.AllowQuerySemicolons(server.Handler)
-	return &NextProxy{
+	return &MitMServer{
 		Listener:      l,
 		server:        server,
 		logger:        fd,
@@ -61,7 +61,7 @@ func ifWebSocketReq(in_req *http.Request) bool {
 	return false
 }
 
-func nextProxyHandleHttp(server string, subpath string, headers map[string]string, writer http.ResponseWriter, in_req *http.Request) {
+func MitMHandleHttp(server string, subpath string, headers map[string]string, writer http.ResponseWriter, in_req *http.Request) {
 	dest_url := in_req.URL
 	dest_url.Scheme = "https"
 	dest_url.Host = server
@@ -83,7 +83,7 @@ func nextProxyHandleHttp(server string, subpath string, headers map[string]strin
 	io.Copy(writer, resp.Body)
 }
 
-func nextProxyHandleWs(server string, subpath string, headers map[string]string, writer http.ResponseWriter, in_req *http.Request) {
+func MitMHandleWs(server string, subpath string, headers map[string]string, writer http.ResponseWriter, in_req *http.Request) {
 	tls_conn, err := tls.Dial("tcp", server+":443", nil)
 	if err != nil {
 		writer.WriteHeader(http.StatusMethodNotAllowed)
@@ -116,6 +116,6 @@ func nextProxyHandleWs(server string, subpath string, headers map[string]string,
 	go transfer(tls_conn, proxy)
 }
 
-func (p *NextProxy) Run() {
+func (p *MitMServer) Run() {
 	p.server.ServeTLS(p.Listener, "", "")
 }
