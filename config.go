@@ -98,4 +98,3 @@ func ReadServerConfig(path string) (cfg *Config) {
 	}
 	return
 }
-	
