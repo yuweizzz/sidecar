@@ -149,7 +149,7 @@ func runClient(cfg *sidecar.Config) {
 	daemon.Perpare(cfg.Client.RunAsDaemon)
 	daemon.LoadCertAndPriKey()
 	pac := sidecar.NewPac(cfg.Client.RemoteServers[0], cfg.Client.GfwListUrl, cfg.Client.CustomProxyHosts)
-	proxy := sidecar.NewProxyServer(cfg.Client.OnlyListenIPv4, cfg.Client.ProxyPort, daemon.Logger, pac)
+	proxy := sidecar.NewProxyViaHttps(daemon.Logger, pac, cfg.Client.OnlyListenIPv4, cfg.Client.ProxyPort)
 	cache := sidecar.NewCertLRU(daemon.Cert, daemon.PriKey)
 	forwarder := sidecar.NewNextProxyServer(proxy.Listener, cache, daemon.Logger,
 		cfg.Client.RemoteServers[0].Host, cfg.Client.RemoteServers[0].ComplexPath, cfg.Client.RemoteServers[0].CustomHeaders)
