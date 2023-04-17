@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type RemoteServer struct {
+type RemoteServerHttps struct {
 	server         *http.Server
 	logger         *os.File
 	port           int
@@ -23,15 +23,15 @@ type RemoteServer struct {
 	customHeaders  map[string]string
 }
 
-func NewRemoteServer(
-	port int, fd *os.File, cert_path string, prikey_path string, only_listen_ipv4 bool,
+func NewRemoteServerHttps(
+	fd *os.File, port int, only_listen_ipv4 bool, cert_path string, prikey_path string,
 	complex_path string, headers map[string]string,
-) *RemoteServer {
+) *RemoteServerHttps {
 	server := &http.Server{
 		IdleTimeout:  5 * time.Second,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
-	return &RemoteServer{
+	return &RemoteServerHttps{
 		server:         server,
 		logger:         fd,
 		port:           port,
@@ -43,7 +43,7 @@ func NewRemoteServer(
 	}
 }
 
-func (r *RemoteServer) proxyRequest(w http.ResponseWriter, req *http.Request) {
+func (r *RemoteServerHttps) proxyRequest(w http.ResponseWriter, req *http.Request) {
 	for k, v := range r.customHeaders {
 		if req.Header.Get(k) != v {
 			http.Error(w, "404 page not found", http.StatusNotFound)
@@ -69,7 +69,7 @@ func (r *RemoteServer) proxyRequest(w http.ResponseWriter, req *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
-func (r *RemoteServer) Run() {
+func (r *RemoteServerHttps) Run() {
 	addr := ":" + strconv.Itoa(r.port)
 	http.HandleFunc("/", http.NotFound)
 	http.HandleFunc("/"+r.complexPath+"/", r.proxyRequest)

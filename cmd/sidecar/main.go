@@ -169,8 +169,8 @@ func runServer(cfg *sidecar.Config) {
 		LogLevel:     cfg.Server.LogLevel,
 	}
 	daemon.Perpare(cfg.Server.RunAsDaemon)
-	server := sidecar.NewRemoteServer(cfg.Server.ServerPort, daemon.Logger, daemon.CertPath, daemon.PriKeyPath,
-		cfg.Server.OnlyListenIPv4, cfg.Server.ComplexPath, cfg.Server.CustomHeaders)
+	server := sidecar.NewRemoteServerHttps(daemon.Logger, cfg.Server.ServerPort, cfg.Server.OnlyListenIPv4,
+		daemon.CertPath, daemon.PriKeyPath, cfg.Server.ComplexPath, cfg.Server.CustomHeaders)
 	sidecar.Info("Now Server is run as a Server.")
 	sidecar.Info("Now Server is running and pid is " + strconv.Itoa(daemon.Pid))
 	go server.Run()
