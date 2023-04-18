@@ -147,16 +147,24 @@ func runClient(cfg *sidecar.Config) {
 		LogLevel:     cfg.Client.LogLevel,
 	}
 	daemon.Perpare(cfg.Client.RunAsDaemon)
-	daemon.LoadCertAndPriKey()
-	pac := sidecar.NewPac(cfg.Client.RemoteServers[0], cfg.Client.GfwListUrl, cfg.Client.CustomProxyHosts)
-	proxy := sidecar.NewProxyViaHttps(daemon.Logger, pac, cfg.Client.OnlyListenIPv4, cfg.Client.ProxyPort)
-	cache := sidecar.NewCertLRU(daemon.Cert, daemon.PriKey)
-	mitm := sidecar.NewMitMServer(proxy.Listener, cache, daemon.Logger,
-		cfg.Client.RemoteServers[0].Host, cfg.Client.RemoteServers[0].ComplexPath, cfg.Client.RemoteServers[0].CustomHeaders)
+	switch cfg.Client.Mode {
+	case "WSS":
+		pac := sidecar.NewPac(cfg.Client.RemoteServers[0], cfg.Client.GfwListUrl, cfg.Client.CustomProxyHosts)
+		proxy := sidecar.NewProxyViaWss(daemon.Logger, pac, cfg.Client.OnlyListenIPv4, cfg.Client.ProxyPort,
+			cfg.Client.RemoteServers[0].Host, cfg.Client.RemoteServers[0].ComplexPath, cfg.Client.RemoteServers[0].CustomHeaders)
+		go proxy.Run()
+	default: // HTTPS
+		daemon.LoadCertAndPriKey()
+		pac := sidecar.NewPac(cfg.Client.RemoteServers[0], cfg.Client.GfwListUrl, cfg.Client.CustomProxyHosts)
+		proxy := sidecar.NewProxyViaHttps(daemon.Logger, pac, cfg.Client.OnlyListenIPv4, cfg.Client.ProxyPort)
+		cache := sidecar.NewCertLRU(daemon.Cert, daemon.PriKey)
+		mitm := sidecar.NewMitMServer(proxy.Listener, cache, daemon.Logger,
+			cfg.Client.RemoteServers[0].Host, cfg.Client.RemoteServers[0].ComplexPath, cfg.Client.RemoteServers[0].CustomHeaders)
+		go proxy.Run()
+		go mitm.Run()
+	}
 	sidecar.Info("Now Server is run as a Client.")
 	sidecar.Info("Now Server is running and pid is " + strconv.Itoa(daemon.Pid))
-	go proxy.Run()
-	go mitm.Run()
 	daemon.WatchSignal()
 }
 
@@ -169,10 +177,19 @@ func runServer(cfg *sidecar.Config) {
 		LogLevel:     cfg.Server.LogLevel,
 	}
 	daemon.Perpare(cfg.Server.RunAsDaemon)
-	server := sidecar.NewRemoteServerHttps(daemon.Logger, cfg.Server.ServerPort, cfg.Server.OnlyListenIPv4,
-		daemon.CertPath, daemon.PriKeyPath, cfg.Server.ComplexPath, cfg.Server.CustomHeaders)
+	sidecar.Info("Server privatekey file: ", daemon.CertPath)
+	sidecar.Info("Server certificate file: ", daemon.PriKeyPath)
+	switch cfg.Server.Mode {
+	case "WSS":
+		server := sidecar.NewRemoteServerWss(daemon.Logger, cfg.Server.ServerPort, cfg.Server.OnlyListenIPv4,
+			daemon.CertPath, daemon.PriKeyPath, cfg.Server.ComplexPath, cfg.Server.CustomHeaders)
+		go server.Run()
+	default: // HTTPS
+		server := sidecar.NewRemoteServerHttps(daemon.Logger, cfg.Server.ServerPort, cfg.Server.OnlyListenIPv4,
+			daemon.CertPath, daemon.PriKeyPath, cfg.Server.ComplexPath, cfg.Server.CustomHeaders)
+		go server.Run()
+	}
 	sidecar.Info("Now Server is run as a Server.")
 	sidecar.Info("Now Server is running and pid is " + strconv.Itoa(daemon.Pid))
-	go server.Run()
 	daemon.WatchSignal()
 }

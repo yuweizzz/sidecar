@@ -10,6 +10,7 @@ type Client struct {
 	ProxyPort        int
 	OnlyListenIPv4   bool
 	RunAsDaemon      bool
+	Mode             string
 	WorkDir          string
 	LogLevel         string
 	GfwListUrl       string

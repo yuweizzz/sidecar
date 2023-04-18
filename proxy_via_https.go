@@ -45,10 +45,11 @@ func (p *ProxyViaHttps) proxyHandleHttps(w http.ResponseWriter, r *http.Request)
 	next_proxy, _, err := hijacker.Hijack()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
 	}
 	_, err = io.WriteString(next_proxy, "HTTP/1.1 200 Connection Established\r\n\r\n")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		Error("Error in connection establish: ", err)
 		return
 	}
 	p.Listener.SetDest(r.Host)

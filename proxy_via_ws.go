@@ -85,7 +85,7 @@ func (i *ProxyViaWss) proxyHandleHttpsToWss(w http.ResponseWriter, r *http.Reque
 
 	_, err = io.WriteString(client_conn, "HTTP/1.1 200 Connection Established\r\n\r\n")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		Error("Error in connection establish: ", err)
 		return
 	}
 
@@ -99,12 +99,10 @@ func (i *ProxyViaWss) proxyHandleHttpsToWss(w http.ResponseWriter, r *http.Reque
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), wss_req_headers)
 	if err != nil {
-		Error("Error in Ingress connect to Websocket: ", err)
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		Error("Error in proxy connect to remote Websocket: ", err)
 		return
 	}
 	defer func() {
-		client_conn.Close()
 		c.Close()
 	}()
 
@@ -123,6 +121,7 @@ func (i *ProxyViaWss) proxyHandleHttpsToWss(w http.ResponseWriter, r *http.Reque
 			}
 		}
 	}()
+
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
