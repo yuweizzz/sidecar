@@ -68,7 +68,7 @@ http {
             proxy_max_temp_file_size 128m;
             proxy_set_header Host $_host;
             proxy_ssl_server_name on;
-            {{ range $key,$value := .Server.CustomHeaders}}
+            {{range $key,$value := .Server.CustomHeaders}}
             proxy_set_header {{ $key | ToLower }} '';
             {{end}}
             {{ if .Server.NginxConf.EnableWebSocketProxy }}
