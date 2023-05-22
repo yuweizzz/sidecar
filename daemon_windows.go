@@ -1,6 +1,3 @@
-//go:build linux || darwin
-// +build linux darwin
-
 package sidecar
 
 import (
@@ -25,6 +22,24 @@ type Daemon struct {
 	Logger       *os.File
 	PriKey       *rsa.PrivateKey
 	Cert         *x509.Certificate
+}
+
+// show windows console
+// https://stackoverflow.com/questions/23743217/printing-output-to-a-command-window-when-golang-application-is-compiled-with-ld
+func console(show bool) {
+	getWin := syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow")
+	showWin := syscall.NewLazyDLL("user32.dll").NewProc("ShowWindow")
+	hwnd, _, _ := getWin.Call()
+	if hwnd == 0 {
+		return
+	}
+	if show {
+		var SW_RESTORE uintptr = 9
+		showWin.Call(hwnd, SW_RESTORE)
+	} else {
+		var SW_HIDE uintptr = 0
+		showWin.Call(hwnd, SW_HIDE)
+	}
 }
 
 func readLock(path string) (pid int) {
@@ -61,12 +76,13 @@ func removeLock(path string) {
 }
 
 func exitWhenLocked(pid int) {
-	fmt.Println("Start Server failed because sidecar.lock exist, maybe Server is already running and pid is", pid)
+	fmt.Println("Start Server failed because sidecar.lock exist, maybe Server is already running and pid is ", pid)
 	fmt.Println("If you confirm Server is not running, remove sidecar.lock and retry.")
 	os.Exit(2)
 }
 
 func (d *Daemon) Perpare(backgroud bool) {
+	console(!backgroud)
 	if backgroud {
 		log_fd := CreateFileIfNotExist(d.WorkDir + "/sidecar.log")
 		if log_fd == nil {
@@ -81,15 +97,7 @@ func (d *Daemon) Perpare(backgroud bool) {
 	Info("Detect if Server is running .....")
 	// if lock exist
 	if pid != 0 {
-		alive := DetectProcess(pid)
-		// if process alive
-		if alive {
-			exitWhenLocked(pid)
-		} else {
-			// if process not alive
-			Info("File sidecar.lock exist, file path is ", d.LockFilePath, ", but process is not running.....")
-			removeLock(d.LockFilePath)
-		}
+		exitWhenLocked(pid)
 	}
 	d.Pid = os.Getpid()
 	writeLock(d.Pid, d.LockFilePath)
@@ -123,10 +131,9 @@ func (d *Daemon) WatchSignal() {
 		done <- true
 	}()
 	Info("Now Server is running and pid is " + strconv.Itoa(d.Pid))
-	Info("Awaiting signal ......")
+	Info("Awaiting signal......")
 	<-done
-	Info("Except signal, exiting ......")
-	removeLock(d.LockFilePath)
+	Info("Except signal, exiting......")
 }
 
 // run in backgroud
@@ -150,7 +157,8 @@ func StopDaemonProcess(workDir string) {
 	// if lock exist
 	if pid != 0 {
 		proc, _ := os.FindProcess(pid)
-		proc.Signal(syscall.SIGINT)
+		removeLock(lockPath)
+		proc.Kill()
 	} else {
 		Error("Now sidecar.lock is not exist, server is stopped")
 	}

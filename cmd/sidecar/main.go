@@ -4,11 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
-	"runtime"
-	"strconv"
-	"syscall"
 
 	"github.com/yuweizzz/sidecar"
 )
@@ -35,7 +31,7 @@ func main() {
 	configServerPath := serverCmd.String("conf", pwd+"/config.toml", "the path of sidecar conf")
 	serverAction := serverCmd.String("action", "", "action must in ['start', 'stop', 'create-nginx-conf']")
 
-	// for run as daemon
+	// run as daemon, use function sidecar.StartDaemonProcess() to start
 	if len(os.Args) < 2 {
 		if os.Getenv("SPECIAL_MARK") == "ENABLED" {
 			path := os.Getenv("CONF_PATH")
@@ -60,36 +56,12 @@ func main() {
 		switch *clientAction {
 		case "start":
 			if cfg.Client.RunAsDaemon {
-				cmd := &exec.Cmd{
-					Path:   os.Args[0],
-					Env:    []string{"SPECIAL_MARK=ENABLED", "CONF_PATH=" + *configClientPath, "TYPE=client"},
-					Stdout: os.Stdout,
-					Stderr: os.Stdout,
-				}
-				err := cmd.Start()
-				if err != nil {
-					panic(err)
-				}
-				os.Exit(0)
+				sidecar.StartDaemonProcess(*configClientPath, "client")
 			} else {
 				runClient(cfg)
 			}
 		case "stop":
-			lockPath := cfg.Client.WorkDir + "/sidecar.lock"
-			pid := sidecar.ReadLock(lockPath)
-			// if lock exist
-			if pid != 0 {
-				proc, _ := os.FindProcess(pid)
-				if runtime.GOOS == "windows" {
-					sidecar.RemoveLock(lockPath)
-					proc.Kill()
-				} else {
-					proc.Signal(syscall.SIGINT)
-				}
-				fmt.Println("Now Server is stopped.")
-			} else {
-				fmt.Println("Now sidecar.lock is not exist, server is stopped")
-			}
+			sidecar.StopDaemonProcess(cfg.Client.WorkDir)
 		default:
 			help(filename)
 		}
@@ -99,35 +71,12 @@ func main() {
 		switch *serverAction {
 		case "start":
 			if cfg.Server.RunAsDaemon {
-				cmd := &exec.Cmd{
-					Path:   os.Args[0],
-					Env:    []string{"SPECIAL_MARK=ENABLED", "CONF_PATH=" + *configServerPath, "TYPE=server"},
-					Stdout: os.Stdout,
-					Stderr: os.Stdout,
-				}
-				err := cmd.Start()
-				if err != nil {
-					panic(err)
-				}
-				os.Exit(0)
+				sidecar.StartDaemonProcess(*configServerPath, "server")
 			} else {
 				runServer(cfg)
 			}
 		case "stop":
-			lockPath := cfg.Server.WorkDir + "/sidecar.lock"
-			pid := sidecar.ReadLock(lockPath)
-			if pid != 0 {
-				proc, _ := os.FindProcess(pid)
-				if runtime.GOOS == "windows" {
-					sidecar.RemoveLock(lockPath)
-					proc.Kill()
-				} else {
-					proc.Signal(syscall.SIGINT)
-				}
-				fmt.Println("Now Server is stopped.")
-			} else {
-				fmt.Println("Now sidecar.lock is not exist, server is stopped")
-			}
+			sidecar.StopDaemonProcess(cfg.Server.WorkDir)
 		case "create-nginx-conf":
 			sidecar.RenderTemplateByConfig(cfg.Server.WorkDir, cfg)
 		default:
@@ -147,24 +96,24 @@ func runClient(cfg *sidecar.Config) {
 		LogLevel:     cfg.Client.LogLevel,
 	}
 	daemon.Perpare(cfg.Client.RunAsDaemon)
+	remoteServer := cfg.Client.RemoteServers[0]
 	switch cfg.Client.Mode {
 	case "WSS":
-		pac := sidecar.NewPac(cfg.Client.RemoteServers[0], cfg.Client.GfwListUrl, cfg.Client.CustomProxyHosts)
+		pac := sidecar.NewPac(remoteServer, cfg.Client.GfwListUrl, cfg.Client.CustomProxyHosts)
 		proxy := sidecar.NewProxyViaWss(daemon.Logger, pac, cfg.Client.OnlyListenIPv4, cfg.Client.ProxyPort,
-			cfg.Client.RemoteServers[0].Host, cfg.Client.RemoteServers[0].ComplexPath, cfg.Client.RemoteServers[0].CustomHeaders)
+			remoteServer.Host, remoteServer.ComplexPath, remoteServer.CustomHeaders)
 		go proxy.Run()
 	default: // HTTPS
 		daemon.LoadCertAndPriKey()
-		pac := sidecar.NewPac(cfg.Client.RemoteServers[0], cfg.Client.GfwListUrl, cfg.Client.CustomProxyHosts)
+		pac := sidecar.NewPac(remoteServer, cfg.Client.GfwListUrl, cfg.Client.CustomProxyHosts)
 		proxy := sidecar.NewProxyViaHttps(daemon.Logger, pac, cfg.Client.OnlyListenIPv4, cfg.Client.ProxyPort)
 		cache := sidecar.NewCertLRU(daemon.Cert, daemon.PriKey)
 		mitm := sidecar.NewMitMServer(proxy.Listener, cache, daemon.Logger,
-			cfg.Client.RemoteServers[0].Host, cfg.Client.RemoteServers[0].ComplexPath, cfg.Client.RemoteServers[0].CustomHeaders)
+			remoteServer.Host, remoteServer.ComplexPath, remoteServer.CustomHeaders)
 		go proxy.Run()
 		go mitm.Run()
 	}
 	sidecar.Info("Now Server is run as a Client.")
-	sidecar.Info("Now Server is running and pid is " + strconv.Itoa(daemon.Pid))
 	daemon.WatchSignal()
 }
 
@@ -177,8 +126,6 @@ func runServer(cfg *sidecar.Config) {
 		LogLevel:     cfg.Server.LogLevel,
 	}
 	daemon.Perpare(cfg.Server.RunAsDaemon)
-	sidecar.Info("Server privatekey file: ", daemon.CertPath)
-	sidecar.Info("Server certificate file: ", daemon.PriKeyPath)
 	switch cfg.Server.Mode {
 	case "WSS":
 		server := sidecar.NewRemoteServerWss(daemon.Logger, cfg.Server.ServerPort, cfg.Server.OnlyListenIPv4,
@@ -190,6 +137,5 @@ func runServer(cfg *sidecar.Config) {
 		go server.Run()
 	}
 	sidecar.Info("Now Server is run as a Server.")
-	sidecar.Info("Now Server is running and pid is " + strconv.Itoa(daemon.Pid))
 	daemon.WatchSignal()
 }
