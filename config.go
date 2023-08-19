@@ -17,6 +17,7 @@ type Client struct {
 	CustomProxyHosts []string
 	PriKeyPath       string
 	CertPath         string
+	Resolver         string
 	RemoteServers    []RemoteServerInfo
 }
 

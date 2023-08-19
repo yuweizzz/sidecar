@@ -97,6 +97,7 @@ func runClient(cfg *sidecar.Config) {
 	}
 	daemon.Perpare(cfg.Client.RunAsDaemon)
 	remoteServer := cfg.Client.RemoteServers[0]
+	sidecar.ChangeResolver(cfg.Client.Resolver)
 	switch cfg.Client.Mode {
 	case "WSS":
 		pac := sidecar.NewPac(remoteServer, cfg.Client.GfwListUrl, cfg.Client.CustomProxyHosts)

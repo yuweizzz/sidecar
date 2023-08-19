@@ -7,6 +7,7 @@ WorkDir = ""  # 工作目录，默认为可执行文件所在的当前目录
 PriKeyPath = ""  # 证书路径，初次运行会自动生成，默认为 WorkDir 下的 sidecar-client.pri
 CertPath = ""  # 私钥路径，初次运行会自动生成，默认为 WorkDir 下的 sidecar-client.crt
 LogLevel = "info"
+Resolver = "1.1.1.1"  # 指定 DNS 服务器，可以来避免某些 DNS 污染问题
 GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"  # 注释该选项使用全局代理
 CustomProxyHosts = [
     # 可以用来补充没有记录在 GfwListUrl 中的域名

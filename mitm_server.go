@@ -1,8 +1,10 @@
 package sidecar
 
 import (
+	"context"
 	"crypto/tls"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -72,7 +74,7 @@ func MitMHandleHttp(server string, subpath string, headers map[string]string, wr
 	for k, v := range headers {
 		in_req.Header.Add(k, v)
 	}
-	resp, err := http.DefaultTransport.RoundTrip(in_req)
+	resp, err := defaultTransport.RoundTrip(in_req)
 	if err != nil {
 		return
 	}
@@ -84,7 +86,22 @@ func MitMHandleHttp(server string, subpath string, headers map[string]string, wr
 }
 
 func MitMHandleWs(server string, subpath string, headers map[string]string, writer http.ResponseWriter, in_req *http.Request) {
-	tls_conn, err := tls.Dial("tcp", server+":443", nil)
+	customDialer := &net.Dialer{
+		Timeout: time.Duration(20) * time.Second,
+	}
+	if globalResolver != "" {
+		customDialer.Resolver = &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{
+					Timeout: time.Duration(5000) * time.Millisecond,
+				}
+				return d.DialContext(ctx, "udp", globalResolver+":53")
+			},
+		}
+	}
+	// tls_conn, err := tls.Dial("tcp", server+":443", nil)
+	tls_conn, err := tls.DialWithDialer(customDialer, "tcp", server+":443", nil)
 	if err != nil {
 		writer.WriteHeader(http.StatusMethodNotAllowed)
 		return

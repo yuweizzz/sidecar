@@ -1,6 +1,7 @@
 package sidecar
 
 import (
+	"context"
 	"io"
 	"net"
 	"net/http"
@@ -15,7 +16,7 @@ func ifHttpRequest(scheme string) bool {
 }
 
 func proxyHandleHttp(w http.ResponseWriter, r *http.Request) {
-	response, err := http.DefaultTransport.RoundTrip(r)
+	response, err := defaultTransport.RoundTrip(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
@@ -31,8 +32,23 @@ func proxyHandleHttp(w http.ResponseWriter, r *http.Request) {
 func directHandleHttps(w http.ResponseWriter, r *http.Request) {
 	// connect Method is empty scheme, add "https" here
 	r.URL.Scheme = "https"
-	// dail timeout maybe get: Unsolicited response received on idle HTTP channel
-	dest_conn, err := net.DialTimeout("tcp", r.Host, 20*time.Second)
+	customDialer := &net.Dialer{
+		// dail timeout maybe get: Unsolicited response received on idle HTTP channel
+		Timeout: time.Duration(20) * time.Second,
+	}
+	if globalResolver != "" {
+		customDialer.Resolver = &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{
+					Timeout: time.Duration(5000) * time.Millisecond,
+				}
+				return d.DialContext(ctx, "udp", globalResolver+":53")
+			},
+		}
+	}
+	// because scheme is https, so r.Host will be "host:port"
+	dest_conn, err := customDialer.Dial("tcp", r.Host)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return

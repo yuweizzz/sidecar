@@ -38,7 +38,7 @@ func (p *Pac) getGfwList(server string, subpath string, headers map[string]strin
 	for k, v := range headers {
 		req.Header.Add(k, v)
 	}
-	resp, err := http.DefaultTransport.RoundTrip(req)
+	resp, err := defaultTransport.RoundTrip(req)
 	if err != nil {
 		Panic("Fetch GfwList failed.")
 	}
