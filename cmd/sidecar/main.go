@@ -12,7 +12,8 @@ import (
 func help(filename string) {
 	fmt.Println("Usage:")
 	fmt.Println("      ", filename, "client -action {start|stop} [-conf ./config.toml]")
-	fmt.Println("      ", filename, "server -action {start|stop|create-nginx-conf} [-conf ./config.toml]")
+	fmt.Println("      ", filename, "server -action {start|stop} [-conf ./config.toml]")
+	fmt.Println("      ", filename, "configure-nginx [-conf ./config.toml]")
 }
 
 func main() {
@@ -29,7 +30,10 @@ func main() {
 	// server
 	serverCmd := flag.NewFlagSet("server", flag.ExitOnError)
 	configServerPath := serverCmd.String("conf", pwd+"/config.toml", "the path of sidecar conf")
-	serverAction := serverCmd.String("action", "", "action must in ['start', 'stop', 'create-nginx-conf']")
+	serverAction := serverCmd.String("action", "", "action must in ['start', 'stop']")
+	// configure-nginx
+	configureNginxCmd := flag.NewFlagSet("configure-nginx", flag.ExitOnError)
+	configPath := configureNginxCmd.String("conf", pwd+"/config.toml", "the path of sidecar conf")
 
 	// run as daemon, use function sidecar.StartDaemonProcess() to start
 	if len(os.Args) < 2 {
@@ -77,11 +81,13 @@ func main() {
 			}
 		case "stop":
 			sidecar.StopDaemonProcess(cfg.Server.WorkDir)
-		case "create-nginx-conf":
-			sidecar.RenderTemplateByConfig(cfg.Server.WorkDir, cfg)
 		default:
 			help(filename)
 		}
+	case "configure-nginx":
+		configureNginxCmd.Parse(os.Args[2:])
+		cfg := sidecar.ReadNginxTplConfig(*configPath)
+		sidecar.RenderTemplateByConfig(cfg)
 	default:
 		help(filename)
 	}

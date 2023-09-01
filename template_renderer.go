@@ -1,9 +1,14 @@
 package sidecar
 
 import (
+	"embed"
+	"os"
 	"strings"
 	"text/template"
 )
+
+//go:embed nginx_conf.tpl
+var tplfile embed.FS
 
 func confirmslash(path string) string {
 	if string(path[len(path)-1]) != "/" {
@@ -12,20 +17,19 @@ func confirmslash(path string) string {
 	return path
 }
 
-func RenderTemplateByConfig(path string, config *Config) {
-	t, err := template.New("nginx_conf.tpl").Funcs(template.FuncMap{
+func RenderTemplateByConfig(config *Config) {
+	pwd, _ := os.Getwd()
+	funcmap := template.FuncMap{
 		"ToLower":      strings.ToLower,
 		"ConfirmSlash": confirmslash,
-	}).ParseFiles("nginx_conf.tpl")
-	if err != nil {
-		panic(err)
 	}
-	fd := CreateFileIfNotExist(path + "/nginx.conf")
+	tpl := template.Must(template.New("nginx_conf.tpl").Funcs(funcmap).ParseFS(tplfile, "nginx_conf.tpl"))
+	fd := CreateFileIfNotExist(pwd + "/nginx.conf")
 	if fd == nil {
-		fd = OpenExistFile(path + "/nginx.conf")
+		fd = OpenExistFile(pwd + "/nginx.conf")
 		fd.Truncate(0)
 	}
-	err = t.ExecuteTemplate(fd, "nginx_conf.tpl", *config)
+	err := tpl.Execute(fd, *config)
 	if err != nil {
 		panic(err)
 	}
