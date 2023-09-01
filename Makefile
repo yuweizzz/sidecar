@@ -25,7 +25,6 @@ build_windows:
 build_mac:
 	GOARCH="amd64" GOOS="darwin" go build -ldflags=$(LD_FLAGS) -o $(OUTPUTDIR)/$(SIDECAR) $(SIDECAR_DIR)/$(MAIN)
 copy_tpl:
-	cp nginx_conf.tpl $(OUTPUTDIR)/nginx_conf.tpl
 	cp config_toml.tpl $(OUTPUTDIR)/config.toml
 copy_linux_scripts:
 	cp scripts/linux/* $(OUTPUTDIR)/
