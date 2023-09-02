@@ -32,6 +32,7 @@ OnlyListenIPv4 = true               # 是否开启 IPv6 模式
 RunAsDaemon = true                  # 配置是否后台运行，后台运行会将日志输出到文件，前台运行会将日志输出到控制台
 Mode = "HTTPS"                      # 支持 HTTPS 和 WSS ，应该根据对应的服务端来配置，默认使用 HTTPS
 WorkDir = ""                        # 工作目录，留空则默认为可执行文件所在的当前目录
+Resolver = "1.1.1.1"                # 指定 DNS 服务器，可以来避免某些 DNS 污染问题
 PriKeyPath = "/path/to/privateKey"  # 远端服务的证书路径，必须自行填写
 CertPath = "/path/to/certificate"   # 远端服务的私钥路径，必须自行填写
 LogLevel = "info"                   # 日志等级有四个等级： debug ， error ， info ， warn ，默认使用 info 

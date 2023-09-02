@@ -133,6 +133,7 @@ func runServer(cfg *sidecar.Config) {
 		LogLevel:     cfg.Server.LogLevel,
 	}
 	daemon.Perpare(cfg.Server.RunAsDaemon)
+	sidecar.ChangeResolver(cfg.Server.Resolver)
 	switch cfg.Server.Mode {
 	case "WSS":
 		server := sidecar.NewRemoteServerWss(daemon.Logger, cfg.Server.ServerPort, cfg.Server.OnlyListenIPv4,

@@ -1,6 +1,7 @@
 package sidecar
 
 import (
+	"context"
 	"crypto/tls"
 	"net"
 	"net/http"
@@ -62,7 +63,22 @@ func (ws *RemoteServerWss) proxyRequest(w http.ResponseWriter, req *http.Request
 
 	endpointHost := req.Header.Get("destination")
 	Info("Request destination is ", endpointHost)
-	dest_conn, err := net.Dial("tcp", endpointHost)
+	customDialer := &net.Dialer{
+		// dail timeout maybe get: Unsolicited response received on idle HTTP channel
+		Timeout: time.Duration(20) * time.Second,
+	}
+	if globalResolver != "" {
+		customDialer.Resolver = &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{
+					Timeout: time.Duration(5000) * time.Millisecond,
+				}
+				return d.DialContext(ctx, "udp", globalResolver+":53")
+			},
+		}
+	}
+	dest_conn, err := customDialer.Dial("tcp", endpointHost)
 	if err != nil {
 		Debug("Error in tcp connect to destination: ", err)
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)

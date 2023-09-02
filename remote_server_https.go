@@ -58,7 +58,7 @@ func (r *RemoteServerHttps) proxyRequest(w http.ResponseWriter, req *http.Reques
 	req.Host = Infos[2]
 	req.RequestURI = TrueURL.RequestURI()
 	Info("Request Info After Rewrite: Host is ", req.Host, ", Uri is ", req.RequestURI)
-	resp, err := http.DefaultTransport.RoundTrip(req)
+	resp, err := defaultTransport.RoundTrip(req)
 	if err != nil {
 		return
 	}

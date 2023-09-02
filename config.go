@@ -36,6 +36,7 @@ type Server struct {
 	RunAsDaemon    bool
 	Mode           string
 	WorkDir        string
+	Resolver       string
 	LogLevel       string
 	PriKeyPath     string
 	CertPath       string
