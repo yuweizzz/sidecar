@@ -12,7 +12,7 @@ Sidecar is a https proxy server based on MITM.
 - [x] Auto create certificate
 - [x] Provide cmd tool
 - [x] Support PAC
-- [ ] Support custom DNS
+- [x] Support Custom DNS
 - [ ] Support HTTP2
 - [ ] Refactoring
 
