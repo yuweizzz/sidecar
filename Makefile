@@ -12,14 +12,17 @@ GOFILE := $(shell find . -name "*.go" | xargs)
 lint:
 	gofmt -w $(GOFILE)
 
-.PHONY: linux windows mac
+.PHONY: linux windows mac linux_armv7
 linux: clean build_linux copy_tpl copy_linux_scripts
+linux_armv7: clean build_linux_armv7 copy_tpl copy_linux_scripts
 windows: clean build_windows copy_tpl copy_windows_scripts
 mac: clean build_mac copy_tpl
 
 .PHONY: build_linux build_windows build_mac copy_tpl
 build_linux:
 	GOARCH="amd64" GOOS="linux" go build -ldflags=$(LD_FLAGS) -o $(OUTPUTDIR)/$(SIDECAR) $(SIDECAR_DIR)/$(MAIN)
+build_linux_armv7:
+	GOARCH=arm GOARM=7 GOOS="linux" go build -ldflags=$(LD_FLAGS) -o $(OUTPUTDIR)/$(SIDECAR) $(SIDECAR_DIR)/$(MAIN)
 build_windows:
 	GOARCH="amd64" GOOS="windows" go build -ldflags=$(LD_FLAGS) -o $(OUTPUTDIR)/sidecar.exe $(SIDECAR_DIR)/$(MAIN)
 build_mac:

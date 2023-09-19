@@ -45,6 +45,18 @@ jobs:
           name: sidecar-release-${{ github.ref_name }}-${{ runner.os }}-amd64
           path: build/*
 
+      - name: Build linux armv7 app
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          make linux_armv7
+
+      - name: Upload linux_armv7 artifact
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sidecar-release-${{ github.ref_name }}-${{ runner.os }}-armv7
+          path: build/*
+
       - name: Build Windows app
         if: matrix.os == 'ubuntu-latest'
         run: |
