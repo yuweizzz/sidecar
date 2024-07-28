@@ -65,6 +65,8 @@ func main() {
 				runClient(cfg)
 			}
 		case "stop":
+			// windows UnsetRegistry
+			sidecar.UnsetRegistry()
 			sidecar.StopDaemonProcess(cfg.Client.WorkDir)
 		default:
 			help(filename)
@@ -121,6 +123,8 @@ func runClient(cfg *sidecar.Config) {
 		go mitm.Run()
 	}
 	sidecar.Info("Now Server is run as a Client.")
+	// windows SetRegistry
+	sidecar.SetRegistry(cfg.Client.ProxyPort)
 	daemon.WatchSignal()
 }
 

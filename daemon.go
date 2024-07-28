@@ -155,3 +155,9 @@ func StopDaemonProcess(workDir string) {
 		Error("Now sidecar.lock is not exist, server is stopped")
 	}
 }
+
+// do nothing
+func SetRegistry(port int) {}
+
+// do nothing
+func UnsetRegistry() {}

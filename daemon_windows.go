@@ -1,6 +1,7 @@
 package sidecar
 
 import (
+	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 type Daemon struct {
@@ -161,5 +164,100 @@ func StopDaemonProcess(workDir string) {
 		proc.Kill()
 	} else {
 		Error("Now sidecar.lock is not exist, server is stopped")
+	}
+}
+
+func SetRegistry(port int) {
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Internet Settings\Connections`, registry.ALL_ACCESS)
+	defer key.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	//	ref:
+	//	(!$EnableProxy) -and (!$EnablePAC) -and (!$EnableAuto)
+	//	ProxyOptions = "01"
+	//
+	//	($EnableProxy) -and (!$EnablePAC) -and (!$EnableAuto)
+	//	ProxyOptions = "03"
+	//
+	//	(!$EnableProxy) -and ($EnablePAC) -and (!$EnableAuto)
+	//	ProxyOptions = "05"
+	//
+	//	($EnableProxy) -and ($EnablePAC) -and (!$EnableAuto)
+	//	ProxyOptions = "07"
+	//
+	//	(!$EnableProxy) -and (!$EnablePAC) -and ($EnableAuto)
+	//	ProxyOptions = "09"
+	//
+	//	($EnableProxy) -and (!$EnablePAC) -and ($EnableAuto)
+	//	ProxyOptions = "11"
+	//
+	//	(!$EnableProxy) -and ($EnablePAC) -and ($EnableAuto)
+	//	ProxyOptions = "13"
+	//
+	//	($EnableProxy) -and ($EnablePAC) -and ($EnableAuto)
+	//	ProxyOptions = "15"
+	//
+	//	$DefaultConnectionSettings = [byte[]]@(@(70, 0, 0, 0)
+	//	+ @($Revision, 0, 0, 0)
+	//	+ @($ProxyOptions, 0, 0, 0)
+	//	+ @($ProxyBytes.Length, 0, 0, 0) + $ProxyBytes
+	//	+ @($BypassBytes.Length, 0, 0, 0) + $BypassBytes
+	//	+ @($PacBytes.Length, 0, 0, 0) + $PacBytes
+	//	+ @(1..32 | % { 0 }))
+
+	raw, _, _ := key.GetBinaryValue("DefaultConnectionSettings")
+	newBytes := &bytes.Buffer{}
+	newBytes.Write(raw[0:8])
+	// ProxyOptions
+	newBytes.WriteByte(byte(0x03))
+	// {0x00, 0x00, 0x00}
+	newBytes.Write(raw[1:4])
+
+	serverStr := "127.0.0.1:" + strconv.Itoa(port)
+	// ProxyBytes.Length
+	newBytes.WriteByte(byte(len(serverStr)))
+	newBytes.Write(raw[1:4])
+	// ProxyBytes
+	newBytes.WriteString(serverStr)
+
+	overrideStr := `localhost;127.*;10.*;172.16.*;172.17.*;172.18.*;172.19.*;172.20.*;172.21.*;172.22.*;172.23.*;172.24.*;172.25.*;172.26.*;172.27.*;172.28.*;172.29.*;172.30.*;172.31.*;192.168.*;<local>`
+	// BypassBytes.Length
+	newBytes.WriteByte(byte(len(overrideStr)))
+	newBytes.Write(raw[1:4])
+	// BypassBytes
+	newBytes.WriteString(overrideStr)
+
+	// PacBytes.Length
+	newBytes.WriteByte(byte(0))
+	newBytes.Write(raw[1:4])
+
+	newBytes.Write([]byte{
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+	})
+
+	err = key.SetBinaryValue("DefaultConnectionSettings", newBytes.Bytes())
+	if err != nil {
+		panic(err)
+	}
+}
+
+func UnsetRegistry() {
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Internet Settings\Connections`, registry.ALL_ACCESS)
+	defer key.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	raw, _, _ := key.GetBinaryValue("DefaultConnectionSettings")
+	raw[8] = 0x01
+
+	err = key.SetBinaryValue("DefaultConnectionSettings", raw)
+	if err != nil {
+		panic(err)
 	}
 }

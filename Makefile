@@ -8,6 +8,8 @@ SIDECAR_DIR := $(CURDIR)/cmd/$(SIDECAR)
 
 GOFILE := $(shell find . -name "*.go" | xargs)
 
+default: build_linux
+
 .PHONY: lint
 lint:
 	gofmt -w $(GOFILE)
