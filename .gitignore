@@ -3,3 +3,4 @@
 *.log
 *.toml
 *.lock
+build
