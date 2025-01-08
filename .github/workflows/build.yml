@@ -28,7 +28,7 @@ jobs:
 
       - name: Upload MacOS artifact
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sidecar-release-${{ github.ref_name }}-${{ runner.os }}-amd64
           path: build/*
@@ -40,7 +40,7 @@ jobs:
 
       - name: Upload linux artifact
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sidecar-release-${{ github.ref_name }}-${{ runner.os }}-amd64
           path: build/*
@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload linux_armv7 artifact
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sidecar-release-${{ github.ref_name }}-${{ runner.os }}-armv7
           path: build/*
@@ -64,7 +64,7 @@ jobs:
 
       - name: Upload Windows artifact
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sidecar-release-${{ github.ref_name }}-windows-amd64
           path: build/*
