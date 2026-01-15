@@ -7,7 +7,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/gorilla/websocket v1.5.1
 	github.com/pmezard/adblock v0.0.0-20171028110701-edfb97ad89cd
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	golang.org/x/sys v0.39.0
 )
 
