@@ -21,6 +21,7 @@ func RenderTemplateByConfig(config *Config) {
 	pwd, _ := os.Getwd()
 	funcmap := template.FuncMap{
 		"ToLower":      strings.ToLower,
+		"Replace":      func(old, new, value string) string { return strings.ReplaceAll(value, old, new) },
 		"ConfirmSlash": confirmslash,
 	}
 	tpl := template.Must(template.New("nginx_conf.tpl").Funcs(funcmap).ParseFS(tplfile, "nginx_conf.tpl"))

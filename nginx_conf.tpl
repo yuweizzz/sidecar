@@ -53,7 +53,7 @@ http {
         location ^~ /{{ .NginxConfig.Location }}/ {
             {{ if .NginxConfig.Resolver }}resolver {{.NginxConfig.Resolver}};{{ end }}
             {{range $key,$value := .NginxConfig.NginxCustomHeader}}
-            if ( $http_{{ $key | ToLower }} != '{{ $value }}' ){
+            if ( $http_{{ $key | Replace "-" "_" | ToLower }} != '{{ $value }}' ){
                 return 404;
             }
             {{end}}
@@ -72,7 +72,7 @@ http {
             proxy_set_header Host $_host;
             proxy_ssl_server_name on;
             {{ range $key,$value := .NginxConfig.NginxCustomHeader }}
-            proxy_set_header {{ $key | ToLower }} '';
+            proxy_set_header {{ $key | Replace "-" "_" | ToLower }} '';
             {{ end }}
             {{ if .NginxConfig.EnableWebSocketProxy }}
             proxy_http_version 1.1;
