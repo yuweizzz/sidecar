@@ -53,6 +53,14 @@ jobs:
           sudo cp certs/server.crt /usr/local/share/ca-certificates/sidecar-nginx-test.crt
           sudo update-ca-certificates
 
+      - name: Validate generated Nginx config
+        run: |
+          cat nginx.conf
+          docker run --rm \
+            --volume "$PWD/nginx.conf:/etc/nginx/nginx.conf:ro" \
+            --volume "$PWD/certs:/etc/nginx/certs:ro" \
+            nginx:stable nginx -t
+
       - name: Start Nginx in Docker
         run: |
           docker run --detach --name sidecar-test-nginx \
@@ -68,9 +76,6 @@ jobs:
           done
           docker logs sidecar-test-nginx
           exit 1
-
-      - name: Validate generated Nginx config
-        run: docker exec sidecar-test-nginx nginx -t
 
       - name: Write Sidecar client config
         run: |
@@ -94,27 +99,17 @@ jobs:
           X-Sidecar-Test = "pipeline"
           EOF
 
-      - name: Run sidecar client
+      - name: Run sidecar client and trust cert
         run: |
           cd cmd/sidecar/
           ../../sidecar client -action start
+          sudo cp cmd/sidecar/sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
+          sudo update-ca-certificates
 
       - name: Check listening services
         run: |
           sleep 15
           sudo netstat -nutlp
-
-      - name: Check local proxy
-        run: |
-          for attempt in $(seq 1 30); do
-            if curl --silent --output /dev/null http://127.0.0.1:4396/; then
-              break
-            fi
-            sleep 1
-          done
-          test -f cmd/sidecar/sidecar-client.crt
-          sudo cp cmd/sidecar/sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
-          sudo update-ca-certificates
 
       - name: Send Test request
         run: |
@@ -127,7 +122,3 @@ jobs:
         run: |
           docker logs sidecar-test-nginx || true
           cat cmd/sidecar/sidecar.log || true
-
-      - name: Stop Nginx container
-        if: always()
-        run: docker rm --force sidecar-test-nginx || true
