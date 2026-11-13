@@ -97,9 +97,7 @@ jobs:
           [Client.RemoteServers.CustomHeaders]
           X-Sidecar-Test = "pipeline"
           EOF
-
-      - name: Run sidecar client and trust cert
-        run: |
+          ls
           ./sidecar client -action start
           test -f ./sidecar-client.crt
           sudo cp ./sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
