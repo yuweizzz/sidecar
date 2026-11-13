@@ -68,14 +68,6 @@ jobs:
             --volume "$PWD/nginx.conf:/etc/nginx/nginx.conf:ro" \
             --volume "$PWD/certs:/etc/nginx/certs:ro" \
             nginx:stable
-          for attempt in $(seq 1 30); do
-            if curl --silent --show-error --insecure --output /dev/null https://127.0.0.1:443/; then
-              exit 0
-            fi
-            sleep 1
-          done
-          docker logs sidecar-test-nginx
-          exit 1
 
       - name: Write Sidecar client config
         run: |
@@ -98,8 +90,6 @@ jobs:
           X-Sidecar-Test = "pipeline"
           EOF
           ./sidecar client -action start -conf ./config.toml
-          ls -la
-          tree
           sudo cp ./sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
           sudo update-ca-certificates
 
@@ -114,8 +104,7 @@ jobs:
             --proxy http://127.0.0.1:4396 \
             https://www.google.com
 
-      - name: Show Nginx and Sidecar logs on failure
-        if: failure()
+      - name: Show Nginx and Sidecar logs
         run: |
           docker logs sidecar-test-nginx || true
           cat sidecar.log || true
