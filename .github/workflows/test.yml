@@ -79,8 +79,7 @@ jobs:
 
       - name: Write Sidecar client config
         run: |
-          mkdir -p cmd/sidecar
-          cat << EOF > cmd/sidecar/config.toml
+          cat << EOF > config.toml
           [Client]
           ProxyPort = 4396
           OnlyListenIPv4 = true
@@ -101,9 +100,9 @@ jobs:
 
       - name: Run sidecar client and trust cert
         run: |
-          cd cmd/sidecar/
-          ../../sidecar client -action start
-          sudo cp cmd/sidecar/sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
+          ./sidecar client -action start
+          test -f ./sidecar-client.crt
+          sudo cp ./sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
           sudo update-ca-certificates
 
       - name: Check listening services
