@@ -97,9 +97,7 @@ jobs:
           [Client.RemoteServers.CustomHeaders]
           X-Sidecar-Test = "pipeline"
           EOF
-          ls -al
-          ./sidecar client -conf ./config.toml -action start
-          test -f ./sidecar-client.crt
+          ./sidecar client -action start -conf ./config.toml
           sudo cp ./sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
           sudo update-ca-certificates
 
