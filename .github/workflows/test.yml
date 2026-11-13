@@ -32,9 +32,9 @@ jobs:
           SSLCertificate = "/etc/nginx/certs/server.crt"
           SSLPrivateKey = "/etc/nginx/certs/server.key"
           WorkDir = "/var/log/nginx"
-          EnableListenHTTP2 = false
+          EnableListenHTTP2 = true
           EnableWebSocketProxy = true
-          EnableModernTLSOnly = false
+          EnableModernTLSOnly = true
 
           [NginxConfig.NginxCustomHeader]
           X-Sidecar-Test = "pipeline"
@@ -79,7 +79,7 @@ jobs:
           WorkDir = ""
           PriKeyPath = ""
           CertPath = ""
-          LogLevel = "info"
+          LogLevel = "debug"
           GfwListUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
 
           [[Client.RemoteServers]]
