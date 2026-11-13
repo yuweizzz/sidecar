@@ -49,7 +49,7 @@ http {
         {{ end }}
         ssl_session_timeout 5m;
         client_header_buffer_size 16k;
-        location ^~/{{ .NginxConfig.Location }}/ {
+        location ^~ /{{ .NginxConfig.Location }}/ {
             {{ if .NginxConfig.Resolver }}resolver {{.NginxConfig.Resolver}};{{ end }}
             {{range $key,$value := .NginxConfig.NginxCustomHeader}}
             if ( $http_{{ $key | ToLower }} != '{{ $value }}' ){
