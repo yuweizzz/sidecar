@@ -34,8 +34,9 @@ http {
     access_log {{ .NginxConfig.WorkDir | ConfirmSlash }}access.log main;
 
     server {
-        listen {{ .NginxConfig.ServerPort }} ssl {{ if .NginxConfig.EnableListenHTTP2 }}http2{{ end }};
-        {{ if not .NginxConfig.OnlyListenIPv4 }}listen [::]:{{ .NginxConfig.ServerPort }} ssl {{ if .NginxConfig.EnableListenHTTP2 }}http2{{ end }};{{ end }}
+        listen {{ .NginxConfig.ServerPort }} ssl;
+        {{ if not .NginxConfig.OnlyListenIPv4 }}listen [::]:{{ .NginxConfig.ServerPort }} ssl;{{ end }}
+        {{ if .NginxConfig.EnableListenHTTP2 }}http2 on;{{ end }}
         server_name {{ .NginxConfig.ServerName }};
         ssl_certificate {{ .NginxConfig.SSLCertificate }};
         ssl_certificate_key {{ .NginxConfig.SSLPrivateKey }};

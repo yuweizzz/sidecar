@@ -71,6 +71,7 @@ jobs:
 
       - name: Write Sidecar client config
         run: |
+          rm -rf config.toml
           cat << EOF > config.toml
           [Client]
           ProxyPort = 4396
