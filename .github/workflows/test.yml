@@ -90,12 +90,9 @@ jobs:
           X-Sidecar-Test = "pipeline"
           EOF
           ./sidecar client -action start -conf ./config.toml
+          sleep 15
           sudo cp ./sidecar-client.crt /usr/local/share/ca-certificates/sidecar-client.crt
           sudo update-ca-certificates
-
-      - name: Check listening services
-        run: |
-          sleep 15
           sudo netstat -nutlp
 
       - name: Send Test request
